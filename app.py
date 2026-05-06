@@ -22,7 +22,7 @@ app.secret_key = os.environ.get('FLASK_SECRET', 'atr-scanner-secret-key-2024')
 # ========================================
 FYERS_APP_ID     = os.environ.get('API_KEY', '9M61XAZQSN-100')
 FYERS_SECRET_KEY = os.environ.get('API_SECRET', 'NYVEV0B7VP')
-FYERS_REDIRECT_URL = 'https://trade.fyers.in/api-login/redirect-uri/index.html'
+FYERS_REDIRECT_URL = 'https://profitmaster-fyers-with-options.onrender.com/callback'
 
 # ========================================
 # SCANNER CONFIGURATION (Exact Copy from Original)
