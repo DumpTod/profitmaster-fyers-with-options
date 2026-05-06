@@ -1,11 +1,20 @@
-setuptools==65.6.3
-wheel==0.38.4
-Flask==2.3.2
-flask-cors==4.0.0
+# Flask Core
+Flask==3.0.0
+Flask-CORS==4.0.0
+flask-socketio==5.3.6
+python-engineio==4.7.1
+python-socketio==5.9.0
+
+# Data Science
+numpy==1.26.3
+pandas==2.1.4
+
+# HTTP Requests
 requests==2.31.0
-numpy==1.24.3
-pandas==2.0.3
-pytz==2023.3
-fyers-apiv3==3.0.6
-yfinance==0.2.18
-gunicorn==20.1.0
+
+# Fyers API
+fyers-apiv3==3.0.8
+
+# Build Tools (CRITICAL - Fixes Your Error!)
+setuptools>=68.0.0
+wheel>=0.41.0
