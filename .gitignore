@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# Token files (SECURITY CRITICAL!)
+/tmp/token.json
+/tmp/refresh_token.txt
+token.json
+refresh_token.txt
+
+# Trade data (optional - keep if you want history persisted)
+trades.json
+options_trades.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+tmp/
