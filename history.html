@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StrikeTrail — Signal History</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+    --bg:#f0f2f5;--white:#ffffff;--header-left:#0f1f3d;--header-right:#1a3560;
+    --text-dark:#0f1f3d;--text-medium:#4a5568;--text-muted:#a0aec0;
+    --border:#e2e8f0;--border-light:#edf2f7;
+    --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.04);
+    --green:#16a34a;--green-light:#dcfce7;--green-mid:#22c55e;
+    --red:#dc2626;--red-light:#fee2e2;--red-mid:#ef4444;
+    --blue:#2563eb;--blue-light:#dbeafe;--blue-mid:#3b82f6;
+    --purple:#7c3aed;--orange:#d97706;
+    --radius:10px;--radius-sm:7px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text-dark);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+.header{background:linear-gradient(135deg,var(--header-left),var(--header-right));padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.header-left h1{font-size:18px;color:#fff;font-weight:700;}
+.header-left .subtitle{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;}
+.header-right{display:flex;gap:6px;flex-wrap:wrap;}
+.hb{padding:6px 13px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;border:none;transition:all 0.18s;font-family:'DM Sans',sans-serif;}
+.hb-back{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
+.hb-back:hover{background:rgba(255,255,255,0.18);}
+.hb-rescan{background:#2563eb;color:#fff;}
+.hb-rescan:hover{background:#1d4ed8;}
+.hb-csv{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.2);}
+.hb-csv:hover{background:rgba(255,255,255,0.2);}
+.hb-clear{background:rgba(220,38,38,0.8);color:#fff;}
+.hb-clear:hover{background:#dc2626;}
+
+.filters{padding:9px 24px;display:flex;gap:7px;flex-wrap:wrap;align-items:center;background:var(--white);border-bottom:1px solid var(--border);}
+.f-select{padding:5px 9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white);color:var(--text-dark);font-size:12px;font-family:'DM Sans',sans-serif;}
+.f-reset{padding:5px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-medium);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.f-reset:hover{border-color:#2563eb;}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;padding:12px 24px;}
+.stat{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px 13px;position:relative;overflow:hidden;}
+.stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;}
+.stat.green-top::after{background:var(--green-mid);}
+.stat.red-top::after{background:var(--red-mid);}
+.stat.blue-top::after{background:var(--blue-mid);}
+.stat.orange-top::after{background:var(--orange);}
+.stat.purple-top::after{background:var(--purple);}
+.stat .s-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;font-weight:500;}
+.stat .s-val{font-size:19px;font-weight:700;margin-top:3px;letter-spacing:-0.5px;}
+.stat .s-val.green{color:var(--green);}
+.stat .s-val.red{color:var(--red);}
+.stat .s-val.blue{color:var(--blue);}
+.stat .s-val.orange{color:var(--orange);}
+.stat .s-val.purple{color:var(--purple);}
+
+.table-wrap{padding:4px 24px 14px;}
+table{width:100%;border-collapse:collapse;font-size:12px;background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+thead{background:var(--header-left);}
+th{color:rgba(255,255,255,0.75);padding:9px 9px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;}
+td{padding:8px 9px;border-bottom:1px solid var(--border-light);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f8fafc;}
+.d-buy{color:var(--green);font-weight:600;}
+.d-sell{color:var(--red);font-weight:600;}
+.g-aplus{color:var(--green);font-weight:700;}
+.g-a{color:#16a34a;font-weight:600;}
+.g-b{color:var(--orange);font-weight:600;}
+.g-c{color:var(--red);font-weight:500;}
+.o-target{color:var(--green);font-weight:600;}
+.o-stop{color:var(--red);font-weight:600;}
+.o-pending{color:var(--orange);}
+.o-open{color:var(--blue);}
+.pnl-pos{color:var(--green);font-weight:700;font-family:'DM Mono',monospace;}
+.pnl-neg{color:var(--red);font-weight:700;font-family:'DM Mono',monospace;}
+.e-input{width:75px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:11px;background:var(--bg);font-family:'DM Mono',monospace;}
+.o-select{padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:10px;background:var(--bg);font-family:'DM Sans',sans-serif;}
+.btn-del{background:none;border:none;cursor:pointer;color:#cbd5e0;font-size:13px;padding:2px 6px;border-radius:4px;transition:all 0.15s;}
+.btn-del:hover{background:var(--red-light);color:var(--red);}
+.no-data{text-align:center;padding:50px;color:var(--text-muted);font-size:13px;}
+
+/* ── ANALYTICS — compact & professional ── */
+.analytics-section{padding:6px 24px 28px;}
+.analytics-header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-top:4px;}
+.analytics-header h2{font-size:14px;font-weight:700;color:var(--text-dark);}
+.analytics-header .ah-sub{font-size:11px;color:var(--text-muted);}
+
+/* Summary ribbon */
+.summary-ribbon{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px;}
+.sr-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px 13px;display:flex;align-items:center;gap:9px;}
+.sr-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.sr-icon.green{background:#f0fdf4;}
+.sr-icon.red{background:#fff5f5;}
+.sr-icon.blue{background:#eff6ff;}
+.sr-icon.purple{background:#faf5ff;}
+.sr-body .sr-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:500;}
+.sr-body .sr-val{font-size:15px;font-weight:700;letter-spacing:-0.3px;margin-top:1px;}
+.sr-body .sr-val.green{color:var(--green);}
+.sr-body .sr-val.red{color:var(--red);}
+.sr-body .sr-val.blue{color:var(--blue);}
+.sr-body .sr-val.purple{color:var(--purple);}
+.sr-body .sr-caption{font-size:10px;color:var(--text-muted);margin-top:1px;}
+
+/* Charts grid — tight, professional heights */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.chart-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:13px 15px;}
+.chart-card.full{grid-column:1/-1;}
+.cc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+.cc-title{font-size:11px;font-weight:700;color:var(--text-dark);}
+.cc-sub{font-size:10px;color:var(--text-muted);margin-top:1px;}
+.cc-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.cc-badge.green{background:var(--green-light);color:var(--green);}
+.cc-badge.red{background:var(--red-light);color:var(--red);}
+.cc-badge.neutral{background:var(--border-light);color:var(--text-medium);}
+.cc-divider{height:1px;background:var(--border-light);margin:8px -15px 10px;}
+.cc-legend{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;}
+.cl-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-medium);}
+.cl-dot{width:6px;height:6px;border-radius:50%;}
+
+@media(max-width:700px){.charts-grid{grid-template-columns:1fr;}.chart-card.full{grid-column:1;}}
+
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;z-index:999;transform:translateY(100px);opacity:0;transition:all 0.3s;box-shadow:var(--shadow);}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;}
+.toast.error{background:#fee2e2;color:#dc2626;border:1px solid #fecaca;}
+.toast.info{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe;}
+
+.footer{padding:13px 24px;text-align:center;color:var(--text-muted);font-size:11px;border-top:1px solid var(--border);}
+.footer a{color:#2563eb;text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <h1>⚡ StrikeTrail — Signal History</h1>
+        <div class="subtitle">Trade Journal &amp; Performance Tracker</div>
+    </div>
+    <div class="header-right">
+        <a href="index.html" class="hb hb-back">← Scanner</a>
+        <button class="hb hb-rescan" onclick="rescanTrades()">🔄 Rescan</button>
+        <button class="hb hb-csv" onclick="exportCSV()">📥 CSV</button>
+        <button class="hb hb-clear" onclick="clearAll()">🗑 Clear</button>
+    </div>
+</div>
+
+<div class="filters">
+    <select class="f-select" id="fGrade" onchange="applyFilters()"><option value="">All Grades</option><option>A+</option><option>A</option><option>B</option><option>C</option></select>
+    <select class="f-select" id="fDir" onchange="applyFilters()"><option value="">All Directions</option><option value="BUY-LONG">BUY</option><option value="SELL-SHORT">SELL</option></select>
+    <select class="f-select" id="fSymbol" onchange="applyFilters()"><option value="">All Symbols</option><option>NIFTY50</option><option>BANKNIFTY</option></select>
+    <select class="f-select" id="fOutcome" onchange="applyFilters()"><option value="">All Outcomes</option><option>pending</option><option>target_hit</option><option>stop_hit</option><option>open</option><option>expired</option></select>
+    <button class="f-reset" onclick="resetFilters()">Reset</button>
+</div>
+
+<div class="stats-grid">
+    <div class="stat blue-top"><div class="s-label">Total</div><div class="s-val blue" id="hTotal">0</div></div>
+    <div class="stat green-top"><div class="s-label">Targets Hit</div><div class="s-val green" id="hTarget">0</div></div>
+    <div class="stat red-top"><div class="s-label">Stops Hit</div><div class="s-val red" id="hStop">0</div></div>
+    <div class="stat green-top"><div class="s-label">Win Rate</div><div class="s-val green" id="hWR">—</div></div>
+    <div class="stat orange-top"><div class="s-label">Pending</div><div class="s-val orange" id="hPending">0</div></div>
+    <div class="stat blue-top"><div class="s-label">Open</div><div class="s-val blue" id="hOpen">0</div></div>
+    <div class="stat purple-top"><div class="s-label">Avg Score</div><div class="s-val purple" id="hScore">—</div></div>
+    <div class="stat green-top"><div class="s-label">Total P&amp;L</div><div class="s-val" id="hPnL">₹0</div></div>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead><tr>
+            <th>Date</th><th>Symbol</th><th>Dir</th><th>Grade</th><th>Score</th>
+            <th>Entry</th><th>SL</th><th>T1</th><th>T2</th><th>R:R</th><th>Conf</th>
+            <th>Outcome</th><th>Exit ₹</th><th>P&amp;L</th><th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+    </table>
+    <div class="no-data" id="noData" style="display:none;">No signals found. Run a scan first.</div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="analytics-section" id="analyticsSection" style="display:none;">
+    <div class="analytics-header">
+        <h2>Performance Analytics</h2>
+        <span class="ah-sub">Based on closed trades only</span>
+    </div>
+
+    <div class="summary-ribbon">
+        <div class="sr-card">
+            <div class="sr-icon green">💰</div>
+            <div class="sr-body">
+                <div class="sr-label">Net P&amp;L</div>
+                <div class="sr-val" id="srNetPnL">₹0</div>
+                <div class="sr-caption">Closed trades</div>
+            </div>
+        </div>
+        <div class="sr-card">
+            <div class="sr-icon blue">🎯</div>
+            <div class="sr-body">
+                <div class="sr-label">Win Rate</div>
+                <div class="sr-val blue" id="srWinRate">—</div>
+                <div class="sr-caption" id="srWinCaption">—</div>
+            </div>
+        </div>
+        <div class="sr-card">
+            <div class="sr-icon green">📈</div>
+            <div class="sr-body">
+                <div class="sr-label">Best Trade</div>
+                <div class="sr-val green" id="srBest">—</div>
+                <div class="sr-caption" id="srBestCaption">—</div>
+            </div>
+        </div>
+        <div class="sr-card">
+            <div class="sr-icon red">📉</div>
+            <div class="sr-body">
+                <div class="sr-label">Worst Trade</div>
+                <div class="sr-val red" id="srWorst">—</div>
+                <div class="sr-caption" id="srWorstCaption">—</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <!-- Equity curve — full width, compact height -->
+        <div class="chart-card full">
+            <div class="cc-top">
+                <div>
+                    <div class="cc-title">Equity Curve</div>
+                    <div class="cc-sub">Cumulative P&amp;L per closed trade</div>
+                </div>
+                <span class="cc-badge neutral" id="equityBadge">—</span>
+            </div>
+            <div class="cc-divider"></div>
+            <canvas id="chartPnL" height="70"></canvas>
+        </div>
+
+        <!-- Outcome donut -->
+        <div class="chart-card">
+            <div class="cc-top">
+                <div>
+                    <div class="cc-title">Trade Outcomes</div>
+                    <div class="cc-sub">All filtered trades</div>
+                </div>
+            </div>
+            <div class="cc-divider"></div>
+            <canvas id="chartOutcome" height="120"></canvas>
+            <div class="cc-legend" id="outcomeLegend"></div>
+        </div>
+
+        <!-- Symbol PnL -->
+        <div class="chart-card">
+            <div class="cc-top">
+                <div>
+                    <div class="cc-title">P&amp;L by Instrument</div>
+                    <div class="cc-sub">Net per symbol</div>
+                </div>
+            </div>
+            <div class="cc-divider"></div>
+            <canvas id="chartSymbol" height="120"></canvas>
+        </div>
+
+        <!-- BUY vs SELL -->
+        <div class="chart-card">
+            <div class="cc-top">
+                <div>
+                    <div class="cc-title">BUY vs SELL</div>
+                    <div class="cc-sub">Wins and losses by direction</div>
+                </div>
+            </div>
+            <div class="cc-divider"></div>
+            <canvas id="chartDir" height="120"></canvas>
+        </div>
+
+        <!-- Grade PnL -->
+        <div class="chart-card">
+            <div class="cc-top">
+                <div>
+                    <div class="cc-title">P&amp;L by Signal Grade</div>
+                    <div class="cc-sub">Does grade predict outcome?</div>
+                </div>
+            </div>
+            <div class="cc-divider"></div>
+            <canvas id="chartGrade" height="120"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer">
+    StrikeTrail v2 — History in localStorage &middot;
+    <a href="index.html">Scanner</a> &middot;
+    <a href="https://profitmaster-4jdd.onrender.com/refresh">Token</a>
+</div>
+
+<script>
+var API_BASE = 'https://profitmaster-fyers.onrender.com';
+var allH = [], filtH = [];
+var chPnL, chOutcome, chSymbol, chDir, chGrade;
+
+Chart.defaults.font.family = "'DM Sans',sans-serif";
+Chart.defaults.color = '#718096';
+var TT = {backgroundColor:'#0f1f3d',titleColor:'#e2e8f0',bodyColor:'#a0aec0',padding:9,cornerRadius:6,displayColors:true,boxPadding:3};
+
+function showToast(m,t){var e=document.getElementById('toast');e.textContent=m;e.className='toast '+t+' show';setTimeout(function(){e.className='toast';},3000);}
+
+function load(){
+    try{var r=localStorage.getItem('signalHistory');if(r)allH=JSON.parse(r).filter(function(s){return s.scanner_type==='atr_trailing';});}
+    catch(e){allH=[];}
+    allH.sort(function(a,b){return new Date(b.scan_date)-new Date(a.scan_date);});
+    applyFilters();
+}
+
+function saveAll(){
+    var r=localStorage.getItem('signalHistory');var all=[];
+    try{if(r)all=JSON.parse(r);}catch(e){}
+    var c=all.filter(function(s){return s.scanner_type!=='atr_trailing';}).concat(allH);
+    if(c.length>5000)c=c.slice(c.length-5000);
+    localStorage.setItem('signalHistory',JSON.stringify(c));
+}
+
+function resetFilters(){['fGrade','fDir','fSymbol','fOutcome'].forEach(function(id){document.getElementById(id).value='';});applyFilters();}
+
+function applyFilters(){
+    var fg=document.getElementById('fGrade').value,
+        fd=document.getElementById('fDir').value,
+        fs=document.getElementById('fSymbol').value,
+        fo=document.getElementById('fOutcome').value;
+    filtH=allH.filter(function(s){
+        if(fg&&s.grade!==fg)return false;
+        if(fd&&s.direction!==fd)return false;
+        if(fs&&s.symbol!==fs)return false;
+        if(fo&&s.outcome!==fo)return false;
+        return true;
+    });
+    renderTable();updateStats();renderCharts();
+}
+
+function getTradePnL(s){
+    if(!s.exit_price||isNaN(s.exit_price))return null;
+    var ep=parseFloat(s.exit_price),en=parseFloat(s.entry),ls=s.lot_size||1;
+    return s.direction==='BUY-LONG'?(ep-en)*ls:(en-ep)*ls;
+}
+
+function classifyOutcome(s){
+    if(!s.exit_price||isNaN(s.exit_price))return s.outcome;
+    var ep=parseFloat(s.exit_price),sl=parseFloat(s.sl),t2=parseFloat(s.target_2||s.target||0);
+    if(s.direction==='BUY-LONG'){if(ep>=t2)return 'target_hit';if(ep<=sl)return 'stop_hit';}
+    else{if(ep<=t2)return 'target_hit';if(ep>=sl)return 'stop_hit';}
+    return 'open';
+}
+
+function fmtDate(sd){
+    try{var d=new Date(sd);return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',timeZone:'Asia/Kolkata'})+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'});}
+    catch(e){return sd;}
+}
+
+function updateStats(){
+    var t=filtH.length,tg=0,st=0,pn=0,op=0;
+    filtH.forEach(function(s){if(s.outcome==='target_hit')tg++;else if(s.outcome==='stop_hit')st++;else if(s.outcome==='pending')pn++;else if(s.outcome==='open')op++;});
+    var dec=tg+st,wr=dec>0?Math.round(tg/dec*100):0;
+    var avg=t>0?Math.round(filtH.reduce(function(a,s){return a+(s.grade_score||0);},0)/t):0;
+    var pnl=0;filtH.forEach(function(s){var p=getTradePnL(s);if(p!==null)pnl+=p;});pnl=Math.round(pnl);
+    document.getElementById('hTotal').textContent=t;
+    document.getElementById('hTarget').textContent=tg;
+    document.getElementById('hStop').textContent=st;
+    document.getElementById('hWR').textContent=dec>0?wr+'%':'—';
+    document.getElementById('hPending').textContent=pn;
+    document.getElementById('hOpen').textContent=op;
+    document.getElementById('hScore').textContent=avg;
+    var pe=document.getElementById('hPnL');
+    pe.textContent='₹'+pnl.toLocaleString('en-IN');
+    pe.className='s-val '+(pnl>=0?'green':'red');
+}
+
+function renderTable(){
+    var tb=document.getElementById('tbody'),nd=document.getElementById('noData');
+    if(filtH.length===0){tb.innerHTML='';nd.style.display='block';return;}
+    nd.style.display='none';
+    var h='';
+    filtH.forEach(function(s,gi){
+        if(s.exit_price&&!isNaN(s.exit_price)){var co=classifyOutcome(s);if(co!==s.outcome)s.outcome=co;}
+        var dc=s.direction==='BUY-LONG'?'d-buy':'d-sell',dl=s.direction==='BUY-LONG'?'BUY':'SELL';
+        var gc=s.grade==='A+'?'g-aplus':s.grade==='A'?'g-a':s.grade==='B'?'g-b':'g-c';
+        var oc=s.outcome==='target_hit'?'o-target':s.outcome==='stop_hit'?'o-stop':s.outcome==='pending'?'o-pending':'o-open';
+        var pnl='',pc='';
+        if(s.exit_price&&!isNaN(s.exit_price)){var p=getTradePnL(s);pnl='₹'+Math.round(p).toLocaleString('en-IN');pc=p>=0?'pnl-pos':'pnl-neg';}
+        var idx=allH.indexOf(s);
+        h+='<tr>';
+        h+='<td>'+fmtDate(s.scan_date)+'</td><td><strong>'+s.symbol+'</strong></td>';
+        h+='<td class="'+dc+'">'+dl+'</td><td class="'+gc+'">'+s.grade+'</td><td>'+s.grade_score+'</td>';
+        h+='<td>'+s.entry+'</td><td style="color:#ef4444">'+s.sl+'</td>';
+        h+='<td style="color:#d97706">'+(s.target_1||'')+'</td><td style="color:#16a34a">'+(s.target_2||s.target||'')+'</td>';
+        h+='<td>'+(s.risk_reward||'')+'</td><td>'+Math.round((s.confidence||0)*100)+'%</td>';
+        h+='<td><select class="o-select" onchange="updO('+idx+',this.value)">';
+        ['pending','open','target_hit','stop_hit','expired'].forEach(function(o){h+='<option value="'+o+'"'+(s.outcome===o?' selected':'')+'>'+o.replace('_',' ')+'</option>';});
+        h+='</select></td>';
+        h+='<td><input class="e-input" type="number" step="0.01" value="'+(s.exit_price||'')+'" onchange="updE('+idx+',this.value)" placeholder="Exit"></td>';
+        h+='<td class="'+pc+'">'+pnl+'</td>';
+        h+='<td><button class="btn-del" onclick="delTrade('+idx+')" title="Delete">✕</button></td>';
+        h+='</tr>';
+    });
+    tb.innerHTML=h;
+}
+
+function delTrade(i){if(!confirm('Delete this trade?'))return;allH.splice(i,1);saveAll();applyFilters();showToast('Deleted','info');}
+function updO(i,v){allH[i].outcome=v;saveAll();applyFilters();}
+function updE(i,v){allH[i].exit_price=v;if(v&&!isNaN(v))allH[i].outcome=classifyOutcome(allH[i]);saveAll();applyFilters();}
+
+function dch(c){if(c)c.destroy();}
+
+function renderCharts(){
+    filtH.forEach(function(s){if(s.exit_price&&!isNaN(s.exit_price))s.outcome=classifyOutcome(s);});
+    var closed=filtH.filter(function(s){return (s.outcome==='target_hit'||s.outcome==='stop_hit')&&s.exit_price&&!isNaN(s.exit_price);});
+    document.getElementById('analyticsSection').style.display=filtH.length>0?'block':'none';
+    if(filtH.length===0)return;
+
+    // Summary ribbon
+    var netPnL=0;closed.forEach(function(s){netPnL+=getTradePnL(s);});netPnL=Math.round(netPnL);
+    var tg=closed.filter(function(s){return s.outcome==='target_hit';}).length;
+    var st=closed.filter(function(s){return s.outcome==='stop_hit';}).length;
+    var dec=tg+st,wr=dec>0?Math.round(tg/dec*100):0;
+    var sp=document.getElementById('srNetPnL');sp.textContent='₹'+netPnL.toLocaleString('en-IN');sp.className='sr-val '+(netPnL>=0?'green':'red');
+    document.getElementById('srWinRate').textContent=dec>0?wr+'%':'—';
+    document.getElementById('srWinCaption').textContent=tg+' wins, '+st+' losses';
+    if(closed.length>0){
+        var pnls=closed.map(function(s){return{pnl:Math.round(getTradePnL(s)),sym:s.symbol,dir:s.direction==='BUY-LONG'?'BUY':'SELL'};});
+        pnls.sort(function(a,b){return b.pnl-a.pnl;});
+        document.getElementById('srBest').textContent='₹'+pnls[0].pnl.toLocaleString('en-IN');
+        document.getElementById('srBestCaption').textContent=pnls[0].sym+' '+pnls[0].dir;
+        document.getElementById('srWorst').textContent='₹'+pnls[pnls.length-1].pnl.toLocaleString('en-IN');
+        document.getElementById('srWorstCaption').textContent=pnls[pnls.length-1].sym+' '+pnls[pnls.length-1].dir;
+    }
+
+    if(closed.length===0)return;
+
+    // 1. Equity Curve
+    var sorted=closed.slice().sort(function(a,b){return new Date(a.scan_date)-new Date(b.scan_date);});
+    var cum=0,pL=[],pD=[],ptC=[];
+    sorted.forEach(function(s){cum+=Math.round(getTradePnL(s));pL.push(fmtDate(s.scan_date));pD.push(cum);ptC.push(cum>=0?'#16a34a':'#dc2626');});
+    var fv=pD[pD.length-1]||0;
+    var eb=document.getElementById('equityBadge');
+    eb.textContent=(fv>=0?'▲ ':'▼ ')+'₹'+Math.abs(fv).toLocaleString('en-IN');
+    eb.className='cc-badge '+(fv>=0?'green':'red');
+
+    dch(chPnL);
+    var ctx=document.getElementById('chartPnL').getContext('2d');
+    var g=ctx.createLinearGradient(0,0,0,150);
+    g.addColorStop(0,fv>=0?'rgba(22,163,74,0.12)':'rgba(220,38,38,0.10)');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    chPnL=new Chart(ctx,{type:'line',data:{labels:pL,datasets:[{label:'Cumulative P&L',data:pD,borderColor:fv>=0?'#16a34a':'#dc2626',backgroundColor:g,borderWidth:2,pointBackgroundColor:ptC,pointBorderColor:'#fff',pointBorderWidth:1.5,pointRadius:3,pointHoverRadius:5,tension:0.4,fill:true}]},
+        options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:function(c){return ' ₹'+c.raw.toLocaleString('en-IN');}}}},
+        scales:{x:{ticks:{color:'#a0aec0',font:{size:9},maxTicksLimit:10},grid:{color:'#f0f4f8',drawBorder:false}},
+                y:{ticks:{color:'#a0aec0',font:{size:9},callback:function(v){return '₹'+v.toLocaleString('en-IN');}},grid:{color:'#f0f4f8',drawBorder:false}}}}});
+
+    // 2. Outcome Donut
+    var op=filtH.filter(function(s){return s.outcome==='open';}).length;
+    var pn=filtH.filter(function(s){return s.outcome==='pending';}).length;
+    var odD=[tg,st,op,pn],odL=['Target Hit','Stop Hit','Open','Pending'],odC=['#16a34a','#dc2626','#2563eb','#d97706'];
+    dch(chOutcome);
+    chOutcome=new Chart(document.getElementById('chartOutcome'),{type:'doughnut',
+        data:{labels:odL,datasets:[{data:odD,backgroundColor:odC,borderWidth:2,borderColor:'#fff',hoverOffset:4}]},
+        options:{responsive:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);return ' '+c.label+': '+c.raw+' ('+Math.round(c.raw/t*100)+'%)';}}}}}});
+    var ol='';odL.forEach(function(l,i){if(odD[i]>0)ol+='<div class="cl-item"><div class="cl-dot" style="background:'+odC[i]+'"></div>'+l+' ('+odD[i]+')</div>';});
+    document.getElementById('outcomeLegend').innerHTML=ol;
+
+    // 3. Symbol P&L
+    var sMap={};closed.forEach(function(s){if(!sMap[s.symbol])sMap[s.symbol]=0;sMap[s.symbol]+=Math.round(getTradePnL(s));});
+    var sL=Object.keys(sMap),sV=sL.map(function(k){return sMap[k];});
+    dch(chSymbol);
+    chSymbol=new Chart(document.getElementById('chartSymbol'),{type:'bar',
+        data:{labels:sL,datasets:[{label:'Net P&L',data:sV,backgroundColor:sV.map(function(v){return v>=0?'rgba(22,163,74,0.1)':'rgba(220,38,38,0.1)';}),borderColor:sV.map(function(v){return v>=0?'#16a34a':'#dc2626';}),borderWidth:1.5,borderRadius:6,borderSkipped:false}]},
+        options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:function(c){return ' ₹'+c.raw.toLocaleString('en-IN');}}}},
+        scales:{x:{ticks:{color:'#4a5568',font:{size:11,weight:'600'}},grid:{display:false},border:{display:false}},
+                y:{ticks:{color:'#a0aec0',font:{size:9},callback:function(v){return '₹'+v.toLocaleString('en-IN');}},grid:{color:'#f0f4f8'},border:{display:false}}}}});
+
+    // 4. BUY vs SELL
+    var ds={'BUY-LONG':{win:0,loss:0},'SELL-SHORT':{win:0,loss:0}};
+    closed.forEach(function(s){var p=getTradePnL(s);if(p>=0)ds[s.direction].win++;else ds[s.direction].loss++;});
+    dch(chDir);
+    chDir=new Chart(document.getElementById('chartDir'),{type:'bar',
+        data:{labels:['BUY','SELL'],datasets:[
+            {label:'Wins',data:[ds['BUY-LONG'].win,ds['SELL-SHORT'].win],backgroundColor:'rgba(22,163,74,0.1)',borderColor:'#16a34a',borderWidth:1.5,borderRadius:6,borderSkipped:false},
+            {label:'Losses',data:[ds['BUY-LONG'].loss,ds['SELL-SHORT'].loss],backgroundColor:'rgba(220,38,38,0.1)',borderColor:'#dc2626',borderWidth:1.5,borderRadius:6,borderSkipped:false}
+        ]},
+        options:{responsive:true,plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10},usePointStyle:true,pointStyle:'circle'}},tooltip:{...TT}},
+        scales:{x:{ticks:{color:'#4a5568',font:{size:11,weight:'600'}},grid:{display:false},border:{display:false}},
+                y:{ticks:{color:'#a0aec0',font:{size:9},stepSize:1},grid:{color:'#f0f4f8'},border:{display:false}}}}});
+
+    // 5. Grade P&L
+    var gMap={};closed.forEach(function(s){var g=s.grade||'?';if(!gMap[g])gMap[g]=0;gMap[g]+=Math.round(getTradePnL(s));});
+    var gO=['A+','A','B','C'],gL=gO.filter(function(g){return gMap[g]!==undefined;}),gV=gL.map(function(g){return gMap[g];});
+    dch(chGrade);
+    chGrade=new Chart(document.getElementById('chartGrade'),{type:'bar',
+        data:{labels:gL,datasets:[{label:'Net P&L',data:gV,backgroundColor:gV.map(function(v){return v>=0?'rgba(22,163,74,0.1)':'rgba(220,38,38,0.1)';}),borderColor:gV.map(function(v){return v>=0?'#16a34a':'#dc2626';}),borderWidth:1.5,borderRadius:6,borderSkipped:false}]},
+        options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:function(c){return ' ₹'+c.raw.toLocaleString('en-IN');}}}},
+        scales:{x:{ticks:{color:'#4a5568',font:{size:12,weight:'700'}},grid:{display:false},border:{display:false}},
+                y:{ticks:{color:'#a0aec0',font:{size:9},callback:function(v){return '₹'+v.toLocaleString('en-IN');}},grid:{color:'#f0f4f8'},border:{display:false}}}}});
+}
+
+function fetchWithTimeout(url, opts, ms){
+    var ctrl=new AbortController();
+    var timer=setTimeout(function(){ctrl.abort();},ms);
+    return fetch(url,Object.assign({},opts,{signal:ctrl.signal})).finally(function(){clearTimeout(timer);});
+}
+
+async function rescanTrades(){
+    var open=allH.filter(function(s){return s.outcome==='pending'||s.outcome==='open';});
+    if(open.length===0){showToast('No pending trades to rescan','info');return;}
+
+    // Disable button, show loading state
+    var btn=document.querySelector('.hb-rescan');
+    var origText=btn.textContent;
+    btn.disabled=true;
+    btn.textContent='⏳ Waking server...';
+    btn.style.opacity='0.7';
+
+    try{
+        // Step 1: Wake up Render (ping /api/status first, it's lightweight)
+        showToast('Waking server — please wait ~30s...','info');
+        try{
+            await fetchWithTimeout(API_BASE+'/api/status',{},35000);
+        }catch(e){
+            // Ignore wake-up errors — server might still respond to the real call
+        }
+
+        // Step 2: Now do the actual rescan with a longer timeout
+        btn.textContent='🔄 Rescanning '+open.length+' trades...';
+        showToast('Rescanning '+open.length+' trades...','info');
+
+        var payload={signals:open.map(function(s){
+            return{_id:s._id,symbol:s.symbol,entry:s.entry,sl:s.sl,
+                   target_1:s.target_1||s.target,target_2:s.target_2||s.target,
+                   direction:s.direction,scan_date:s.scan_date};
+        })};
+
+        var r=await fetchWithTimeout(API_BASE+'/api/track',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(payload)
+        },90000);
+
+        if(!r.ok) throw new Error('Server returned '+r.status);
+        var d=await r.json();
+
+        if(d.status==='success'&&d.results){
+            var u=0;
+            d.results.forEach(function(res){
+                var sig=allH.find(function(s){return s._id===res._id;});
+                if(sig){
+                    if(res.exit_price&&!isNaN(res.exit_price)) sig.exit_price=res.exit_price;
+                    var newOutcome=classifyOutcome(sig)||res.status;
+                    if(newOutcome&&newOutcome!==sig.outcome){sig.outcome=newOutcome;u++;}
+                }
+            });
+            saveAll();applyFilters();
+            showToast(u>0?u+' trades updated ✓':'No changes — trades still pending','success');
+        }else{
+            showToast('Error: '+(d.message||'Unknown response'),'error');
+        }
+
+    }catch(e){
+        if(e.name==='AbortError'){
+            showToast('Timed out — server may still be waking. Try again in 30s.','error');
+        }else{
+            showToast('Failed: '+e.message,'error');
+        }
+    }finally{
+        btn.disabled=false;
+        btn.textContent=origText;
+        btn.style.opacity='1';
+    }
+}
+
+function exportCSV(){
+    if(filtH.length===0){showToast('No data','info');return;}
+    var rows=[['Date','Symbol','Direction','Grade','Score','Entry','SL','T1','T2','RR','Confidence','Outcome','Exit','PnL'].join(',')];
+    filtH.forEach(function(s){
+        var pnl='';if(s.exit_price&&!isNaN(s.exit_price)){pnl=Math.round(getTradePnL(s));}
+        rows.push([s.scan_date,s.symbol,s.direction,s.grade,s.grade_score,s.entry,s.sl,s.target_1,s.target_2,s.risk_reward,Math.round((s.confidence||0)*100)+'%',s.outcome,s.exit_price||'',pnl].join(','));
+    });
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));a.download='striketrail_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+    showToast('CSV exported','success');
+}
+
+function clearAll(){if(!confirm('Clear ALL history? Cannot undo.'))return;allH=[];saveAll();applyFilters();showToast('Cleared','info');}
+
+load();
+</script>
+</body>
+</html>
