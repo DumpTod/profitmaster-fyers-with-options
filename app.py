@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, redirect
+from flask import Flask, jsonify, request, redirect, send_file  # ✅ ADDED send_file
 from flask_cors import CORS
 import requests as req
 import numpy as np
@@ -6,9 +6,7 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 import calendar
 import pytz
-from flask import send_file
-import os
-import os
+import os  # ✅ ADDED os
 import json
 import hashlib
 import threading
@@ -22,9 +20,9 @@ app.secret_key = os.environ.get('FLASK_SECRET', 'atr-scanner-secret-key-2024')
 # ========================================
 # FYERS CREDENTIALS (Your Fresh Credentials)
 # ========================================
-FYERS_APP_ID     = os.environ.get('API_KEY', '9M61XAZQSN-100')
-FYERS_SECRET_KEY = os.environ.get('API_SECRET', 'NYVEV0B7VP')
-FYERS_REDIRECT_URL = 'https://profitmaster-fyers-with-options.onrender.com/callback'
+FYERS_APP_ID     = os.environ.get('API_KEY', 'B64YVF96PK-100')
+FYERS_SECRET_KEY = os.environ.get('API_SECRET', 'QLMGPDNWC7')
+FYERS_REDIRECT_URL = 'https://trade.fyers.in/api-login/redirect-uri/index.html'
 
 # ========================================
 # SCANNER CONFIGURATION (Exact Copy from Original)
@@ -279,7 +277,7 @@ def round_to_strike(price, step):
 # ========================================
 
 @app.route('/refresh')
-def refresh_token_route():  # Renamed to avoid conflict
+def refresh_token_route():
     auth_url = (
         f"https://api-t1.fyers.in/api/v3/generate-authcode"
         f"?client_id={FYERS_APP_ID}"
@@ -908,10 +906,8 @@ def execute_futures_trade(signal_data, quantity=1):
         direction = signal_data.get('direction', '')
         entry_price = float(signal_data.get('entry', 0))
         
-        # Determine side
-        side = 1 if direction == 'BUY-LONG' else -1  # 1=BUY, -1=SELL
+        side = 1 if direction == 'BUY-LONG' else -1
         
-        # Map symbol to Fyers format
         symbol_map = {
             'NIFTY50': 'NSE:NIFTY23FUT',
             'BANKNIFTY': 'NSE:BANKNIFTY23FUT'
@@ -920,12 +916,11 @@ def execute_futures_trade(signal_data, quantity=1):
         
         print(f"🎯 Executing Futures Trade: {fyers_symbol} | Side: {'BUY' if side==1 else 'SELL'} | Qty: {quantity}")
         
-        # Place order via Fyers API
         try:
             order_data = {
                 "symbol": fyers_symbol,
                 "qty": quantity,
-                "type": 2,  # MARKET order
+                "type": 2,
                 "side": side,
                 "productType": "INTRADAY",
                 "limitPrice": 0,
@@ -941,7 +936,6 @@ def execute_futures_trade(signal_data, quantity=1):
             if response.get('s') == 'ok':
                 order_id = response.get('id', '')
                 
-                # Create trade record
                 trade_record = {
                     'id': f"FUT-{datetime.now(IST).strftime('%Y%m%d%H%M%S%f')}",
                     'signal_id': signal_data.get('_id', ''),
@@ -963,13 +957,11 @@ def execute_futures_trade(signal_data, quantity=1):
                     'outcome': 'pending'
                 }
                 
-                # Store trade
                 active_futures_trades.append(trade_record)
                 save_trades()
                 
                 print(f"✅ Futures Trade Executed: {trade_record['id']} | Order ID: {order_id}")
                 
-                # 🔥 AUTO-EXECUTE LINKED OPTIONS TRADE
                 execute_options_trade(trade_record, signal_data)
                 
                 return trade_record
@@ -992,9 +984,6 @@ def execute_futures_trade(signal_data, quantity=1):
 def execute_options_trade(futures_trade, signal_data=None):
     """
     Automatically execute corresponding options trade when futures trade opens
-    - BUY CE for Futures BUY
-    - BUY PE for Futures SELL
-    - Strike closest to TP1 price
     """
     global active_options_trades
     
@@ -1008,13 +997,10 @@ def execute_options_trade(futures_trade, signal_data=None):
             print("⚠️ Missing required fields for options trade")
             return None
         
-        # Determine option type
         opt_type = 'CE' if direction == 'BUY-LONG' else 'PE'
         
-        # Get expiry date
         expiry = get_active_expiry(symbol, datetime.now(IST).date())
         
-        # Get option details (strike, LTP, symbol)
         strike, ltp, opt_symbol = get_tp1_option(symbol, target_1, opt_type, expiry)
         
         if not opt_symbol or not ltp:
@@ -1023,15 +1009,14 @@ def execute_options_trade(futures_trade, signal_data=None):
         
         print(f"🎯 Executing Options Trade: {opt_symbol} | Type: {opt_type} | Strike: {strike} | LTP: {ltp}")
         
-        # Place options order (always BUY)
         fyers = init_fyers()
         if fyers:
             try:
                 order_data = {
                     "symbol": opt_symbol,
                     "qty": quantity,
-                    "type": 2,  # MARKET order
-                    "side": 1,  # Always BUY for options
+                    "type": 2,
+                    "side": 1,
                     "productType": "INTRADAY",
                     "limitPrice": 0,
                     "stopPrice": 0,
@@ -1046,7 +1031,6 @@ def execute_options_trade(futures_trade, signal_data=None):
                 if response.get('s') == 'ok':
                     order_id = response.get('id', '')
                     
-                    # Create options trade record
                     options_trade = {
                         'id': f"OPT-{datetime.now(IST).strftime('%Y%m%d%H%M%S%f')}",
                         'futures_trade_id': futures_trade.get('id', ''),
@@ -1071,7 +1055,6 @@ def execute_options_trade(futures_trade, signal_data=None):
                         'outcome': 'pending'
                     }
                     
-                    # Store options trade
                     active_options_trades.append(options_trade)
                     save_options_trades()
                     
@@ -1081,7 +1064,7 @@ def execute_options_trade(futures_trade, signal_data=None):
                     
                 else:
                     print(f"❌ Options order failed: {response.get('message', 'Unknown error')}")
-                    return None
+                    return null
                     
             except Exception as e:
                 print(f"❌ Options order error: {e}")
@@ -1104,7 +1087,6 @@ def close_linked_options(futures_trade_id, reason='TP/SL Hit'):
     global active_options_trades
     
     try:
-        # Find linked options trade
         options_trade = None
         for opt in active_options_trades:
             if opt.get('futures_trade_id') == futures_trade_id and opt.get('status') == 'OPEN':
@@ -1117,15 +1099,14 @@ def close_linked_options(futures_trade_id, reason='TP/SL Hit'):
         
         print(f"🔒 Closing Options Trade: {options_trade['id']} | Reason: {reason}")
         
-        # Close options position (SELL to close)
         fyers = init_fyers()
         if fyers:
             try:
                 order_data = {
                     "symbol": options_trade['opt_symbol'],
                     "qty": options_trade['quantity'],
-                    "type": 2,  # MARKET order
-                    "side": -1,  # SELL to close
+                    "type": 2,
+                    "side": -1,
                     "productType": "INTRADAY",
                     "limitPrice": 0,
                     "stopPrice": 0,
@@ -1138,14 +1119,11 @@ def close_linked_options(futures_trade_id, reason='TP/SL Hit'):
                 response = fyers.place_order(data=order_data)
                 
                 if response.get('s') == 'ok':
-                    # Calculate P&L (approximate since we don't have exact exit price)
-                    # In production, you'd fetch actual exit price from order book
-                    exit_price = options_trade['entry_price'] * 1.05  # Placeholder - replace with actual
+                    exit_price = options_trade['entry_price'] * 1.05
                     
                     pnl = (exit_price - options_trade['entry_price']) * options_trade['quantity']
                     pnl_pct = (pnl / (options_trade['entry_price'] * options_trade['quantity'])) * 100
                     
-                    # Update options trade record
                     options_trade.update({
                         'status': 'CLOSED',
                         'exit_price': round(exit_price, 2),
@@ -1205,7 +1183,6 @@ def monitor_positions():
                         if not config:
                             continue
                         
-                        # Fetch latest candle
                         df = fetch_candles(config['instrument_key'], '1minute', days=1)
                         
                         if len(df) == 0:
@@ -1217,7 +1194,6 @@ def monitor_positions():
                         target_2 = float(trade.get('target_2', 0))
                         direction = trade.get('direction', '')
                         
-                        # Check if TP or SL hit
                         hit_target = False
                         hit_sl = False
                         
@@ -1226,7 +1202,7 @@ def monitor_positions():
                                 hit_target = True
                             elif current_price <= sl:
                                 hit_sl = True
-                        else:  # SELL-SHORT
+                        else:
                             if current_price <= target_2:
                                 hit_target = True
                             elif current_price >= sl:
@@ -1235,12 +1211,10 @@ def monitor_positions():
                         if hit_target or hit_sl:
                             reason = 'Target Hit' if hit_target else 'Stop Loss Hit'
                             
-                            # Update futures trade
                             trade['status'] = 'CLOSED'
                             trade['exit_price'] = current_price
                             trade['exit_time'] = datetime.now(IST).strftime('%d %b %H:%M')
                             
-                            # Calculate P&L
                             if direction == 'BUY-LONG':
                                 pnl = (current_price - entry_price) * trade.get('quantity', 1)
                             else:
@@ -1254,14 +1228,13 @@ def monitor_positions():
                             
                             print(f"🎯 Futures Trade Closed: {trade['id']} | {reason} | P&L: ₹{pnl:.2f}")
                             
-                            # 🔥 AUTO-CLOSE LINKED OPTIONS
                             close_linked_options(trade['id'], reason)
                             
                     except Exception as e:
                         print(f"⚠️ Error monitoring trade {trade.get('id')}: {e}")
                         continue
             
-            time.sleep(10)  # Check every 10 seconds
+            time.sleep(10)
             
         except Exception as e:
             print(f"⚠️ Position monitor error: {e}")
@@ -1325,10 +1298,6 @@ def background_scanner():
 
 @app.route('/api/execute-trade', methods=['POST'])
 def api_execute_trade():
-    """
-    Execute a futures trade based on signal ID
-    Automatically executes linked options trade
-    """
     try:
         data = request.json
         signal_id = data.get('signal_id')
@@ -1337,14 +1306,12 @@ def api_execute_trade():
         if not signal_id:
             return jsonify({'status': 'error', 'message': 'signal_id required'})
         
-        # Find signal in cache
         signals = scan_cache.get('signals', [])
         signal = next((s for s in signals if s.get('_id') == signal_id), None)
         
         if not signal:
             return jsonify({'status': 'error', 'message': 'Signal not found'})
         
-        # Execute futures trade (which auto-executes options)
         trade = execute_futures_trade(signal, quantity)
         
         if trade:
@@ -1363,7 +1330,6 @@ def api_execute_trade():
 
 @app.route('/api/trades')
 def api_get_active_trades():
-    """Get all active (open) futures trades"""
     active = [t for t in active_futures_trades if t.get('status') == 'OPEN']
     return jsonify({
         'status': 'success',
@@ -1374,7 +1340,6 @@ def api_get_active_trades():
 
 @app.route('/api/options-trades')
 def api_get_active_options_trades():
-    """Get all active (open) options trades"""
     active = [t for t in active_options_trades if t.get('status') == 'OPEN']
     return jsonify({
         'status': 'success',
@@ -1385,7 +1350,6 @@ def api_get_active_options_trades():
 
 @app.route('/api/trades/history')
 def api_get_trades_history():
-    """Get closed futures trades history"""
     closed = [t for t in active_futures_trades if t.get('status') == 'CLOSED']
     return jsonify({
         'status': 'success',
@@ -1396,7 +1360,6 @@ def api_get_trades_history():
 
 @app.route('/api/options-trades/history')
 def api_get_options_history():
-    """Get closed options trades history"""
     closed = [t for t in active_options_trades if t.get('status') == 'CLOSED']
     return jsonify({
         'status': 'success',
@@ -1407,7 +1370,6 @@ def api_get_options_history():
 
 @app.route('/api/close-trade/<trade_id>', methods=['POST'])
 def api_close_trade():
-    """Manually close a specific futures trade (and its linked options)"""
     try:
         global active_futures_trades
         
@@ -1419,7 +1381,6 @@ def api_close_trade():
         if trade.get('status') != 'OPEN':
             return jsonify({'status': 'error', 'message': 'Trade already closed'})
         
-        # Close the trade manually (mark as closed)
         trade['status'] = 'CLOSED'
         trade['close_reason'] = 'Manual Close'
         trade['exit_time'] = datetime.now(IST).strftime('%d %b %H:%M')
@@ -1427,7 +1388,6 @@ def api_close_trade():
         
         save_trades()
         
-        # 🔥 AUTO-CLOSE LINKED OPTIONS
         close_linked_options(trade_id, 'Futures Manually Closed')
         
         return jsonify({
@@ -1442,7 +1402,6 @@ def api_close_trade():
 
 @app.route('/api/trades/all')
 def api_get_all_trades():
-    """Get all trades (both open and closed)"""
     return jsonify({
         'status': 'success',
         'all_trades': active_futures_trades,
@@ -1452,7 +1411,6 @@ def api_get_all_trades():
 
 @app.route('/api/options-trades/all')
 def api_get_all_options_trades():
-    """Get all options trades (both open and closed)"""
     return jsonify({
         'status': 'success',
         'all_options_trades': active_options_trades,
@@ -1461,7 +1419,7 @@ def api_get_all_options_trades():
 
 
 # ========================================
-# ORIGINAL API ROUTES (PRESERVED EXACTLY)
+# ✅ FIXED ROUTES - Serve HTML Files from Root Directory
 # ========================================
 
 @app.route('/')
@@ -1473,7 +1431,6 @@ def home():
         except Exception as e:
             print(f"Error serving index.html: {e}")
     
-    # Fallback only if index.html not found
     ts = 'Token Active' if token_data['access_token'] else 'Token Expired'
     tt = token_data.get('token_time', 'Never')
 
@@ -1491,6 +1448,26 @@ def home():
     <p><a href="/debug-fyers" style="color:#a78bfa;text-decoration:none;padding:10px 24px;background:#4c1d95;border-radius:6px;display:inline-block;margin:5px;">Debug</a></p>
     </body></html>"""
 
+
+@app.route('/history')
+def history():
+    """Serve history.html from root directory"""
+    if os.path.exists('history.html'):
+        try:
+            return send_file('history.html')
+        except Exception as e:
+            print(f"Error serving history.html: {e}")
+    
+    return """<html><body style="font-family:sans-serif;padding:50px;background:#0f1f3d;color:white">
+    <h1 style="color:#ef4444">History Page Not Found</h1>
+    <p style="color:#aaa;margin-top:20px;">Could not find history.html file</p>
+    <a href="/" style="color:#22c55e;margin-top:20px;display:inline-block;">← Back to Home</a>
+    </body></html>""", 404
+
+
+# ========================================
+# ORIGINAL API ROUTES (PRESERVED EXACTLY)
+# ========================================
 
 @app.route('/api/status')
 def api_status():
@@ -1523,7 +1500,6 @@ def api_signals():
     if status == 'NO_TOKEN':
         return jsonify({'status': 'success', 'scanner_status': 'NO_TOKEN', 'signals': [], 'timestamp': now.isoformat()})
 
-    # If cache is fresh and not forcing, return immediately
     cache_ttl = 30 if status == 'ACTIVE' else 60
     if not force and scan_cache['last_scan'] and (now - scan_cache['last_scan']).total_seconds() < cache_ttl:
         return jsonify({
@@ -1534,7 +1510,6 @@ def api_signals():
             'timestamp': now.isoformat()
         })
 
-    # Try to acquire lock for fresh scan
     if scan_lock.acquire(blocking=False):
         try:
             if status in ['ACTIVE', 'PRE_MARKET']:
@@ -1555,7 +1530,6 @@ def api_signals():
         finally:
             scan_lock.release()
     else:
-        # Another scan is running, return current cache with flag
         return jsonify({
             'status': 'success',
             'scanner_status': status,
@@ -1692,17 +1666,14 @@ if __name__ == '__main__':
     print(f"Loaded Trades: {len(active_futures_trades)} futures, {len(active_options_trades)} options")
     print(f"{'='*70}\n")
 
-    # Start background scanner thread
     bg_thread = threading.Thread(target=background_scanner, daemon=True)
     bg_thread.start()
     print("Background scanner started (every 30 seconds during market hours)")
 
-    # 🆕 Start position monitor thread (NEW)
     monitor_thread = threading.Thread(target=monitor_positions, daemon=True)
     monitor_thread.start()
     print("Position monitor started (checks TP/SL every 10 seconds)")
 
-    # Start keep-alive thread (every 14 minutes)
     def keep_alive_ping():
         while True:
             try:
