@@ -1466,6 +1466,14 @@ def api_get_all_options_trades():
 
 @app.route('/')
 def home():
+    """Serve index.html from root directory"""
+    if os.path.exists('index.html'):
+        try:
+            return send_file('index.html')
+        except Exception as e:
+            print(f"Error serving index.html: {e}")
+    
+    # Fallback only if index.html not found
     ts = 'Token Active' if token_data['access_token'] else 'Token Expired'
     tt = token_data.get('token_time', 'Never')
 
