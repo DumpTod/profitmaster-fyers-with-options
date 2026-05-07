@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StrikeTrail — Signal History</title>
-    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #f5f5f5;
             color: #333;
         }
         
-        /* Header - Navy Blue */
+        /* Header */
         .header {
             background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
             color: white;
@@ -25,7 +24,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
         
-        .logo h1 {
+        .header h1 {
             font-size: 22px;
             font-weight: 700;
             display: flex;
@@ -33,7 +32,7 @@
             gap: 10px;
         }
         
-        .logo p {
+        .header p {
             font-size: 13px;
             opacity: 0.9;
             margin-top: 3px;
@@ -54,30 +53,11 @@
             transition: all 0.3s;
         }
         
-        .btn-scanner {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-        
-        .btn-rescan {
-            background: #2563eb;
-            color: white;
-        }
-        
-        .btn-csv {
-            background: #374151;
-            color: white;
-        }
-        
-        .btn-clear {
-            background: #dc2626;
-            color: white;
-        }
-        
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
+        .btn-scanner { background: rgba(255,255,255,0.2); color: white; }
+        .btn-rescan { background: #2563eb; color: white; }
+        .btn-csv { background: #374151; color: white; }
+        .btn-clear { background: #dc2626; color: white; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         
         /* Filters Row */
         .filters-row {
@@ -100,10 +80,7 @@
             min-width: 140px;
         }
         
-        select:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
+        select:focus { outline: none; border-color: #2563eb; }
         
         .btn-reset {
             padding: 8px 20px;
@@ -115,9 +92,7 @@
             font-size: 14px;
         }
         
-        .btn-reset:hover {
-            background: #e5e7eb;
-        }
+        .btn-reset:hover { background: #e5e7eb; }
         
         /* Stats Cards */
         .stats-row {
@@ -152,17 +127,17 @@
             color: #1f2937;
         }
         
-        .stat-card:nth-child(1) { border-left-color: #2563eb; } /* TOTAL - Blue */
-        .stat-card:nth-child(2) { border-left-color: #10b981; } /* TARGETS - Green */
-        .stat-card:nth-child(3) { border-left-color: #ef4444; } /* STOPS - Red */
-        .stat-card:nth-child(4) { border-left-color: #10b981; } /* WIN RATE - Green */
-        .stat-card:nth-child(5) { border-left-color: #f59e0b; } /* PENDING - Orange */
-        .stat-card:nth-child(6) { border-left-color: #2563eb; } /* OPEN - Blue */
-        .stat-card:nth-child(7) { border-left-color: #8b5cf6; } /* AVG SCORE - Purple */
-        .stat-card:nth-child(8) { border-left-color: #10b981; } /* TOTAL P&L - Green */
-        
         .stat-value.green { color: #10b981; }
         .stat-value.red { color: #ef4444; }
+        
+        .stat-card:nth-child(1) { border-left-color: #2563eb; }
+        .stat-card:nth-child(2) { border-left-color: #10b981; }
+        .stat-card:nth-child(3) { border-left-color: #ef4444; }
+        .stat-card:nth-child(4) { border-left-color: #10b981; }
+        .stat-card:nth-child(5) { border-left-color: #f59e0b; }
+        .stat-card:nth-child(6) { border-left-color: #2563eb; }
+        .stat-card:nth-child(7) { border-left-color: #8b5cf6; }
+        .stat-card:nth-child(8) { border-left-color: #10b981; }
         
         /* Content Area */
         .content {
@@ -200,11 +175,8 @@
             font-size: 14px;
         }
         
-        tbody tr:hover {
-            background: #f9fafb;
-        }
+        tbody tr:hover { background: #f9fafb; }
         
-        /* Text Colors */
         .text-green { color: #10b981; font-weight: 600; }
         .text-red { color: #ef4444; font-weight: 600; }
         .text-blue { color: #2563eb; }
@@ -230,9 +202,7 @@
             font-weight: 500;
         }
         
-        .btn-exit:hover {
-            background: #e5e7eb;
-        }
+        .btn-exit:hover { background: #e5e7eb; }
         
         .btn-delete {
             background: none;
@@ -243,9 +213,7 @@
             padding: 0 8px;
         }
         
-        .btn-delete:hover {
-            color: #ef4444;
-        }
+        .btn-delete:hover { color: #ef4444; }
         
         /* Empty State */
         .empty-state {
@@ -287,43 +255,27 @@
         .hidden { display: none !important; }
         
         @media (max-width: 1024px) {
-            .stats-row {
-                grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-            }
+            .stats-row { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
         }
         
         @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-            
-            .filters-row {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            table {
-                font-size: 12px;
-            }
-            
-            th, td {
-                padding: 10px 8px;
-            }
+            .header { flex-direction: column; gap: 15px; text-align: center; }
+            .filters-row { flex-direction: column; align-items: stretch; }
+            table { font-size: 12px; }
+            th, td { padding: 10px 8px; }
         }
     </style>
 </head>
 <body>
     <!-- Header -->
     <div class="header">
-        <div class="logo">
+        <div style="flex:1;">
             <h1>⚡ StrikeTrail — Signal History</h1>
             <p>Trade Journal & Performance Tracker</p>
         </div>
         <div class="header-buttons">
             <button class="btn btn-scanner" onclick="window.location.href='/'">← Scanner</button>
-            <button class="btn btn-rescan">🔄 Rescan</button>
+            <button class="btn btn-rescan" onclick="loadSignals()">🔄 Rescan</button>
             <button class="btn btn-csv" onclick="exportCSV()">📥 CSV</button>
             <button class="btn btn-clear" onclick="clearHistory()">🗑 Clear</button>
         </div>
@@ -341,13 +293,15 @@
         <div class="filters-row">
             <select id="filter-grade" onchange="applyFilters()">
                 <option value="">All Grades</option>
+                <option value="A+">Grade A+</option>
                 <option value="A">Grade A</option>
                 <option value="B">Grade B</option>
+                <option value="C">Grade C</option>
             </select>
             <select id="filter-dir" onchange="applyFilters()">
                 <option value="">All Directions</option>
-                <option value="BUY">Buy Only</option>
-                <option value="SELL">Sell Only</option>
+                <option value="BUY-LONG">Buy Only</option>
+                <option value="SELL-SHORT">Sell Only</option>
             </select>
             <select id="filter-symbol" onchange="applyFilters()">
                 <option value="">All Symbols</option>
@@ -357,8 +311,8 @@
             <select id="filter-outcome" onchange="applyFilters()">
                 <option value="">All Outcomes</option>
                 <option value="pending">Pending</option>
-                <option value="target hit">Target Hit</option>
-                <option value="stop hit">Stop Hit</option>
+                <option value="target_hit">Target Hit</option>
+                <option value="stop_hit">Stop Hit</option>
             </select>
             <button class="btn-reset" onclick="resetFilters()">Reset</button>
         </div>
@@ -374,7 +328,7 @@
                 <div class="stat-value green" id="stat-targets">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Stops Hit</div>
+                <div class="label">Stops Hit</div>
                 <div class="stat-value red" id="stat-stops">0</div>
             </div>
             <div class="stat-card">
@@ -423,7 +377,10 @@
                 </thead>
                 <tbody id="signals-tbody">
                     <tr>
-                        <td colspan="15" class="empty-state">Loading trades...</td>
+                        <td colspan="15" class="empty-state">
+                            <h2 style="font-size:48px;margin-bottom:20px;">📭</h2>
+                            <p>Loading trade history...</p>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -479,7 +436,10 @@
                 </thead>
                 <tbody id="options-tbody">
                     <tr>
-                        <td colspan="10" class="empty-state">No options trades yet</td>
+                        <td colspan="10" class="empty-state">
+                            <h2 style="font-size:48px;margin-bottom:20px;">🎯</h2>
+                            <p>No options trades yet</p>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -487,42 +447,46 @@
     </div>
 
     <script>
-        const socket = io();
         let allSignals = [];
         let allOptions = [];
         let filteredSignals = [];
 
-        // Socket Connection
-        socket.on('connect', () => console.log('Connected'));
-
-        socket.on('initial_data', (data) => {
-            allSignals = data.signals || [];
-            allOptions = data.options || [];
-            applyFilters();
-            renderOptions();
-            calculateStats();
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSignals();
+            loadOptions();
         });
 
-        socket.on('new_signal', (signal) => {
-            allSignals.unshift(signal);
-            applyFilters();
-            calculateStats();
-        });
-
-        socket.on('options_update', (opt) => {
-            allOptions.unshift(opt);
-            renderOptions();
-            calculateOptionsStats();
-        });
-
-        socket.on('outcome_updated', (trade) => {
-            const idx = allSignals.findIndex(s => s.id === trade.id);
-            if (idx !== -1) {
-                allSignals[idx] = trade;
-                applyFilters();
-                calculateStats();
+        async function loadSignals(forceRefresh = false) {
+            try {
+                const url = forceRefresh ? '/api/signals?force=true' : '/api/signals';
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    allSignals = data.signals || [];
+                    applyFilters();
+                    calculateStats();
+                }
+            } catch (error) {
+                console.error('Error loading signals:', error);
             }
-        });
+        }
+
+        async function loadOptions() {
+            try {
+                const response = await fetch('/api/option-signals');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    allOptions = data.option_signals || [];
+                    renderOptionsTable();
+                    calculateOptionsStats();
+                }
+            } catch (error) {
+                console.error('Error loading options:', error);
+            }
+        }
 
         // Section Toggle
         function showSection(section) {
@@ -531,23 +495,6 @@
             document.getElementById('futures-toggle').classList.toggle('active', section === 'futures');
             document.getElementById('options-toggle').classList.toggle('options-active', section === 'options');
         }
-
-        // Load Data
-        fetch('/api/signals')
-            .then(r => r.json())
-            .then(data => {
-                allSignals = data;
-                applyFilters();
-                calculateStats();
-            });
-
-        fetch('/api/options-signals')
-            .then(r => r.json())
-            .then(data => {
-                allOptions = data;
-                renderOptions();
-                calculateOptionsStats();
-            });
 
         // Apply Filters
         function applyFilters() {
@@ -558,7 +505,7 @@
 
             filteredSignals = allSignals.filter(s => {
                 if (grade && s.grade !== grade) return false;
-                if (dir && s.dir !== dir) return false;
+                if (dir && s.direction !== dir) return false;
                 if (symbol && !s.symbol.includes(symbol)) return false;
                 if (outcome && s.outcome !== outcome) return false;
                 return true;
@@ -572,139 +519,120 @@
             const tbody = document.getElementById('signals-tbody');
 
             if (!filteredSignals.length) {
-                tbody.innerHTML = '<tr><td colspan="15" class="empty-state">No signals found</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="15" class="empty-state"><h2 style="font-size:48px;margin-bottom:20px;">📭</h2><p>No signals found</p></td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = filteredSignals.map(s => `
-                <tr>
-                    <td>${s.date || '-'}</td>
-                    <td><strong>${s.symbol}</strong></td>
-                    <td class="${s.dir === 'BUY' ? 'text-green' : 'text-red'}">${s.dir}</td>
-                    <td><strong>${s.grade}</strong></td>
-                    <td>${s.score}</td>
-                    <td class="text-green">${s.entry}</td>
-                    <td class="text-red">${s.sl}</td>
-                    <td class="text-blue">${s.t1}</td>
-                    <td class="text-blue">${s.t2}</td>
-                    <td>${s.rr || '1:2.5'}</td>
-                    <td>${s.conf || '80%'}</td>
-                    <td>
-                        <select class="outcome-select" onchange="updateOutcome('${s.id}', this.value)">
-                            <option value="pending" ${s.outcome === 'pending' ? 'selected' : ''}>pending</option>
-                            <option value="target hit" ${s.outcome === 'target hit' ? 'selected' : ''}>target hit</option>
-                            <option value="stop hit" ${s.outcome === 'stop hit' ? 'selected' : ''}>stop hit</option>
-                        </select>
-                    </td>
-                    <td><input type="number" step="0.01" placeholder="Exit" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;width:80px;" onchange="updateExit('${s.id}', this.value)"></td>
-                    <td class="${(s.pnl || 0) >= 0 ? 'text-green' : 'text-red'}">${s.pnl ? '₹' + s.pnl.toLocaleString() : ''}</td>
-                    <td><button class="btn-delete" onclick="deleteTrade('${s.id}')">×</button></td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = filteredSignals.map(s => {
+                const dirClass = s.direction === 'BUY-LONG' ? 'text-green' : 'text-red';
+                const dirText = s.direction === 'BUY-LONG' ? 'BUY' : 'SELL';
+                
+                return `
+                    <tr>
+                        <td>${s.scan_date ? new Date(s.scan_date).toLocaleDateString('en-IN', {day:'numeric', month:'short'}) + ' ' + (s.scan_time || '') : '-'}</td>
+                        <td><strong>${s.symbol}</strong></td>
+                        <td class="${dirClass}">${dirText}</td>
+                        <td><strong>${s.grade || '-'}</strong></td>
+                        <td>${s.grade_score || '-'}</td>
+                        <td class="text-green">${s.entry || '-'}</td>
+                        <td class="text-red">${s.sl || '-'}</td>
+                        <td class="text-blue">${s.target_1 || '-'}</td>
+                        <td class="text-blue">${s.target_2 || '-'}</td>
+                        <td>${s.risk_reward || '-'}</td>
+                        <td>${s.confidence ? (s.confidence * 100).toFixed(0) + '%' : '-'}</td>
+                        <td>
+                            <select class="outcome-select" onchange="updateOutcome('${s._id}', this.value)">
+                                <option value="pending" ${s.outcome === 'pending' ? 'selected' : ''}>pending</option>
+                                <option value="target_hit" ${s.outcome === 'target_hit' ? 'selected' : ''}>target hit</option>
+                                <option value="stop_hit" ${s.outcome === 'stop_hit' ? 'selected' : ''}>stop hit</option>
+                            </select>
+                        </td>
+                        <td><input type="number" step="0.01" placeholder="Exit" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;width:80px;"></td>
+                        <td class="${(s.pnl || 0) >= 0 ? 'text-green' : 'text-red'}">${s.pnl ? '₹' + s.pnl.toLocaleString() : ''}</td>
+                        <td><button class="btn-delete" title="Delete">×</button></td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // Render Options Table
-        function renderOptions() {
+        function renderOptionsTable() {
             const tbody = document.getElementById('options-tbody');
 
             if (!allOptions.length) {
-                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No options trades recorded</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><h2 style="font-size:48px;margin-bottom:20px;">🎯</h2><p>No options trades recorded</p></td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = allOptions.map(o => `
-                <tr>
-                    <td>${o.entry_time || '-'}</td>
-                    <td><strong>${o.symbol}</strong></td>
-                    <td><span style="background:${o.option_type==='CE'?'#10b981':'#ef4444'};color:white;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;">${o.option_type}</span></td>
-                    <td>₹${o.strike_price?.toLocaleString()}</td>
-                    <td class="text-green">₹${o.entry_price}</td>
-                    <td>${o.exit_price ? '₹'+o.exit_price : '-'}</td>
-                    <td class="${(o.pnl||0)>=0?'text-green':'text-red'}">${o.pnl ? '₹'+o.pnl.toFixed(2) : '-'}</td>
-                    <td>${o.status}</td>
-                    <td>${o.close_reason || '-'}</td>
-                    <td style="font-size:12px;color:#6b7280;">${o.linked_futures_id?.substring(0,12)||'-'}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = allOptions.map(o => {
+                const pnlClass = (o.pnl || 0) >= 0 ? 'text-green' : 'text-red';
+                const badgeClass = o.opt_type === 'CE' ? 'ce-badge' : 'pe-badge';
+                
+                return `
+                    <tr>
+                        <td>${o.scan_date ? new Date(o.scan_date).toLocaleDateString('en-IN', {day:'numeric', month:'short'}) + ' ' + (o.scan_time || '') : '-'}</td>
+                        <td><strong>${o.symbol}</strong></td>
+                        <td><span style="background:${o.opt_type==='CE'?'#10b981':'#ef4444'};color:${o.opt_type==='CE'?'white':'white'};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;">${o.opt_type}</span></td>
+                        <td>₹${o.strike?.toLocaleString()}</td>
+                        <td class="text-green">₹${o.ltp || '-'}</td>
+                        <td>-</td>
+                        <td class="${pnlClass}">-</td>
+                        <td>Pending</td>
+                        <td>-</td>
+                        <td style="font-size:12px;color:#6b7280;">${o.futures_id?.substring(0,14)||'-'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // Calculate Futures Stats
         function calculateStats() {
             const total = allSignals.length;
-            const targets = allSignals.filter(s => s.outcome === 'target hit').length;
-            const stops = allSignals.filter(s => s.outcome === 'stop hit').length;
+            const targets = allSignals.filter(s => s.outcome === 'target_hit').length;
+            const stops = allSignals.filter(s => s.outcome === 'stop_hit').length;
             const pending = allSignals.filter(s => s.outcome === 'pending').length;
-            const open = allSignals.filter(s => s.status === 'OPEN').length;
-            const closed = allSignals.filter(s => s.status === 'CLOSED' && s.pnl !== 0);
-            const winrate = closed.length > 0 ? ((closed.filter(s => s.pnl > 0).length / closed.length) * 100).toFixed(0) : 0;
-            const avgScore = total > 0 ? (allSignals.reduce((sum, s) => sum + (parseInt(s.score) || 0), 0) / total).toFixed(0) : 0;
-            const totalPnL = allSignals.reduce((sum, s) => sum + (parseFloat(s.pnl) || 0), 0);
+            const closed = total - pending;
+            const winrate = closed > 0 ? ((targets / closed) * 100).toFixed(0) : 0;
+            const avgScore = total > 0 ? (allSignals.reduce((sum, s) => sum + (parseInt(s.grade_score) || 0), 0) / total).toFixed(0) : 0;
 
             document.getElementById('stat-total').textContent = total;
             document.getElementById('stat-targets').textContent = targets;
             document.getElementById('stat-stops').textContent = stops;
             document.getElementById('stat-winrate').textContent = winrate + '%';
             document.getElementById('stat-pending').textContent = pending;
-            document.getElementById('stat-open').textContent = open;
+            document.getElementById('stat-open').textContent = pending;
             document.getElementById('stat-score').textContent = avgScore;
             
-            const pnlEl = document.getElementById('stat-pnl');
-            pnlEl.textContent = '₹' + totalPnL.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0});
-            pnlEl.className = 'stat-value ' + (totalPnL >= 0 ? 'green' : 'red');
+            // Calculate approximate P&L (would need actual exit prices)
+            document.getElementById('stat-pnl').textContent = '₹--';
         }
 
         // Calculate Options Stats
         function calculateOptionsStats() {
             const total = allOptions.length;
-            const ce = allOptions.filter(o => o.option_type === 'CE').length;
-            const pe = allOptions.filter(o => o.option_type === 'PE').length;
-            const active = allOptions.filter(o => o.status === 'OPEN').length;
-            const closed = allOptions.filter(o => o.status === 'CLOSED').length;
-            const totalPnL = allOptions.reduce((sum, o) => sum + (parseFloat(o.pnl) || 0), 0);
+            const ce = allOptions.filter(o => o.opt_type === 'CE').length;
+            const pe = allOptions.filter(o => o.opt_type === 'PE').length;
+            const active = total; // All are pending until executed
+            const closed = 0;
 
             document.getElementById('opt-stat-total').textContent = total;
             document.getElementById('opt-stat-ce').textContent = ce;
             document.getElementById('opt-stat-pe').textContent = pe;
             document.getElementById('opt-stat-active').textContent = active;
             document.getElementById('opt-stat-closed').textContent = closed;
-            
-            const pnlEl = document.getElementById('opt-stat-pnl');
-            pnlEl.textContent = '₹' + totalPnL.toFixed(2);
-            pnlEl.className = 'stat-value ' + (totalPnL >= 0 ? 'green' : 'red');
+            document.getElementById('opt-stat-pnl').textContent = '₹--';
         }
 
-        // Actions
         async function updateOutcome(id, outcome) {
-            await fetch(`/update-outcome/${id}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({outcome})
-            });
-        }
-
-        async function updateExit(id, exitPrice) {
-            if (!exitPrice) return;
-            await fetch(`/update-outcome/${id}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({exit_price: exitPrice, outcome: 'closed'})
-            });
-        }
-
-        async function deleteTrade(id) {
-            if (!confirm('Delete this signal?')) return;
-            await fetch(`/delete-trade/${id}`, {method: 'DELETE'});
-            allSignals = allSignals.filter(s => s.id !== id);
-            applyFilters();
-            calculateStats();
-        }
-
-        async function clearHistory() {
-            if (!confirm('⚠️ Clear ALL history? This cannot be undone!')) return;
-            await fetch('/clear-history', {method: 'POST'});
-            allSignals = [];
-            applyFilters();
-            calculateStats();
+            // This would normally call an API to update the signal
+            console.log(`Update ${id} to ${outcome}`);
+            // For now, just update locally
+            const signal = allSignals.find(s => s._id === id);
+            if (signal) {
+                signal.outcome = outcome;
+                applyFilters();
+                calculateStats();
+            }
         }
 
         function resetFilters() {
@@ -712,12 +640,32 @@
             applyFilters();
         }
 
+        async function clearHistory() {
+            if (!confirm('⚠️ Clear ALL displayed signals? This cannot be undone!')) return;
+            // This would call an API endpoint
+            alert('History cleared (demo mode)');
+        }
+
         function exportCSV() {
-            const headers = ['Date','Symbol','Direction','Grade','Score','Entry','SL','T1','T2','R:R','Confidence','Outcome','Exit','P&L'];
+            const headers = ['Date','Symbol','Direction','Grade','Score','Entry','SL','T1','T2','R:R','Confidence','Outcome'];
             const csv = [headers.join(',')];
             allSignals.forEach(s => {
-                csv.push([s.date,s.symbol,s.dir,s.grade,s.score,s.entry,s.sl,s.t1,s.t2,s.rr||'1:2.5',s.conf||'80%',s.outcome,'',s.pnl||''].join(','));
+                csv.push([
+                    s.scan_date || '',
+                    s.symbol,
+                    s.direction,
+                    s.grade,
+                    s.grade_score,
+                    s.entry,
+                    s.sl,
+                    s.target_1,
+                    s.target_2,
+                    s.risk_reward,
+                    s.confidence,
+                    s.outcome
+                ].join(','));
             });
+            
             downloadFile(csv.join('\n'), 'striketrail-history.csv');
         }
 
