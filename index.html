@@ -9,7 +9,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #f5f5f5;
             color: #333;
         }
@@ -99,6 +99,10 @@
             background: #9ca3af;
         }
         
+        .status-dot.active {
+            background: #10b981;
+        }
+        
         .status-right {
             display: flex;
             gap: 20px;
@@ -177,13 +181,13 @@
             margin: 0 auto;
         }
         
+        /* Signal Cards */
         .signals-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 25px;
         }
         
-        /* Signal Cards */
         .signal-card {
             background: white;
             border-radius: 12px;
@@ -245,13 +249,13 @@
         }
         
         .signal-item {
-            padding: 16px;
+            padding: 12px 16px;
             border-bottom: 1px solid #f3f4f6;
             display: grid;
-            grid-template-columns: 120px 1fr 80px 80px 80px;
-            gap: 15px;
+            grid-template-columns: 100px 1fr 80px 80px 80px 70px;
+            gap: 12px;
             align-items: center;
-            font-size: 14px;
+            font-size: 13px;
         }
         
         .signal-item:last-child {
@@ -312,13 +316,31 @@
             
             .signal-item {
                 grid-template-columns: 1fr;
-                gap: 8px;
+                gap: 6px;
             }
         }
 
         /* Options specific */
         .options-section {
             margin-top: 30px;
+        }
+        
+        .ce-badge {
+            background: #10b981;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .pe-badge {
+            background: #ef4444;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -330,21 +352,21 @@
             <p>ATR Trailing Stop Scanner — NIFTY & BANKNIFTY</p>
         </div>
         <div class="header-buttons">
-            <button class="btn btn-scanning">⏱ Scanning...</button>
+            <button class="btn btn-scanning" id="scanning-btn">⏱ Scanning...</button>
             <button class="btn btn-history" onclick="window.location.href='/history'">📋 History</button>
-            <button class="btn btn-token">🔑 Token</button>
+            <button class="btn btn-token" onclick="window.location.href='/set-token'">🔑 Token</button>
         </div>
     </div>
 
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-left">
-            <span class="status-dot"></span>
+            <span class="status-dot" id="status-dot"></span>
             <span id="connection-status">Connecting...</span>
         </div>
         <div class="status-right">
             <span>⏱ <span id="last-update">---:--</span></span>
-            <span>📊 <span id="total-signals">---</span></span>
+            <span>📊 Total: <span id="total-signals">---</span></span>
             <span>Buy: <span id="buy-count">0</span></span>
             <span>Sell: <span id="sell-count">0</span></span>
         </div>
@@ -353,18 +375,18 @@
     <!-- Tabs -->
     <div class="tabs-container">
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('futures')">📋 Futures Signals</div>
-            <div class="tab" onclick="switchTab('options')">🎯 Options</div>
+            <div class="tab active" id="futures-tab" onclick="switchTab('futures')">📋 Futures Signals</div>
+            <div class="tab" id="options-tab" onclick="switchTab('options')">🎯 Options</div>
         </div>
     </div>
 
     <!-- Filters -->
     <div class="filters">
         <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
-        <button class="filter-btn" onclick="setFilter('NIFTY', this)">NIFTY</button>
+        <button class="filter-btn" onclick="setFilter('NIFTY50', this)">NIFTY</button>
         <button class="filter-btn" onclick="setFilter('BANKNIFTY', this)">BANKNIFTY</button>
-        <button class="filter-btn buy" onclick="setFilter('BUY', this)">● Buy</button>
-        <button class="filter-btn sell" onclick="setFilter('SELL', this)">● Sell</button>
+        <button class="filter-btn buy" onclick="setFilter('BUY-LONG', this)">● Buy</button>
+        <button class="filter-btn sell" onclick="setFilter('SELL-SHORT', this)">● Sell</button>
         <button class="filter-btn" onclick="setFilter('ATR-TS', this)">ATR-TS</button>
     </div>
 
@@ -403,10 +425,10 @@
             </div>
         </div>
 
-        <!-- Options Section (Hidden by default) -->
+        <!-- Options Section -->
         <div id="options-section" style="display:none;">
             <div class="signals-grid">
-                <!-- Options CE (Call) Card -->
+                <!-- Call Options Card -->
                 <div class="signal-card">
                     <div class="card-header buy">
                         <span>🎯 Call Options (CE)</span>
@@ -420,7 +442,7 @@
                     </div>
                 </div>
 
-                <!-- Options PE (Put) Card -->
+                <!-- Put Options Card -->
                 <div class="signal-card">
                     <div class="card-header sell">
                         <span>🎯 Put Options (PE)</span>
@@ -447,144 +469,237 @@
     </div>
 
     <script>
-        const socket = io();
         let signals = [];
         let optionsSignals = [];
         let currentFilter = 'all';
         let currentTab = 'futures';
 
-        // Socket Events
-        socket.on('connect', () => {
-            document.getElementById('connection-status').textContent = 'Connected ✓';
-            document.querySelector('.status-dot').style.background = '#10b981';
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchSignals();
+            fetchOptionSignals();
+            updateStatus();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(fetchSignals, 30000);
+            setInterval(fetchOptionSignals, 60000);
         });
 
-        socket.on('initial_data', (data) => {
-            signals = data.signals || [];
-            optionsSignals = data.options || [];
-            renderSignals();
-            renderOptionsSignals();
-            updateStats();
-        });
+        async function fetchSignals() {
+            try {
+                const response = await fetch('/api/signals?force=false');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    signals = data.signals || [];
+                    renderFuturesSignals();
+                    updateStats();
+                    
+                    // Update status
+                    document.getElementById('connection-status').textContent = 'Connected ✓';
+                    document.getElementById('status-dot').classList.add('active');
+                    document.getElementById('last-update').textContent = new Date().toLocaleTimeString('en-US', {hour12: false});
+                    
+                    const status = data.scanner_status || 'UNKNOWN';
+                    const btn = document.getElementById('scanning-btn');
+                    if (status === 'ACTIVE') {
+                        btn.textContent = '⏱ Scanning...';
+                        btn.style.background = '#10b981';
+                    } else if (status === 'NO_TOKEN') {
+                        btn.textContent = '⚠ No Token';
+                        btn.style.background = '#ef4444';
+                    } else {
+                        btn.textContent = '💤 Market Closed';
+                        btn.style.background = '#6b7280';
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching signals:', error);
+                document.getElementById('connection-status').textContent = 'Error connecting';
+            }
+        }
 
-        socket.on('new_signal', (signal) => {
-            signals.unshift(signal);
-            renderSignals();
-            updateStats();
-        });
+        async function fetchOptionSignals() {
+            try {
+                const response = await fetch('/api/option-signals');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    optionsSignals = data.option_signals || [];
+                    renderOptionSignals();
+                }
+            } catch (error) {
+                console.error('Error fetching option signals:', error);
+            }
+        }
 
-        socket.on('options_update', (optSignal) => {
-            optionsSignals.unshift(optSignal);
-            renderOptionSignals();
-        });
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                if (data.token_set) {
+                    document.getElementById('connection-status').textContent = 'Token Active ✓';
+                    document.getElementById('status-dot').classList.add('active');
+                }
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        }
 
-        // Tab Switching
         function switchTab(tab) {
             currentTab = tab;
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
             
+            // Update tab styles
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            if (tab === 'futures') {
+                document.getElementById('futures-tab').classList.add('active');
+            } else {
+                document.getElementById('options-tab').classList.add('active');
+            }
+            
+            // Show/hide sections
             document.getElementById('futures-section').style.display = tab === 'futures' ? 'block' : 'none';
             document.getElementById('options-section').style.display = tab === 'options' ? 'block' : 'none';
         }
 
-        // Filter
         function setFilter(filter, btn) {
             currentFilter = filter;
+            
+            // Update button styles
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            renderSignals();
+            
+            // Re-render signals
+            renderFuturesSignals();
             renderOptionSignals();
         }
 
-        // Render Futures Signals
-        function renderSignals() {
-            const filtered = signals.filter(s => {
+        function renderFuturesSignals() {
+            // Filter signals
+            let filtered = signals.filter(s => {
                 if (currentFilter === 'all') return true;
-                if (currentFilter === 'BUY' || currentFilter === 'SELL') return s.dir === currentFilter;
-                return s.symbol.includes(currentFilter);
+                if (currentFilter === 'BUY-LONG' || currentFilter === 'SELL-SHORT') {
+                    return s.direction === currentFilter;
+                }
+                return s.symbol.includes(currentFilter.replace('BANKNIFTY', 'BANKNIFTY').replace('NIFTY', 'NIFTY50'));
             });
 
-            const buys = filtered.filter(s => s.dir === 'BUY');
-            const sells = filtered.filter(s => s.dir === 'SELL');
+            // Separate buy/sell
+            const buys = filtered.filter(s => s.direction === 'BUY-LONG');
+            const sells = filtered.filter(s => s.direction === 'SELL-SHORT');
 
+            // Update counts
             document.getElementById('buy-count-badge').textContent = buys.length;
             document.getElementById('sell-count-badge').textContent = sells.length;
 
-            document.getElementById('buy-signals-body').innerHTML = buys.length ? 
-                `<div class="signal-list">${buys.map(formatSignal).join('')}</div>` :
-                '<p style="color:#9ca3af;">No buy signals</p>';
+            // Render buy signals
+            const buyBody = document.getElementById('buy-signals-body');
+            if (buys.length === 0) {
+                buyBody.innerHTML = '<p style="color:#9ca3af; text-align:center;">No buy signals</p>';
+            } else {
+                buyBody.innerHTML = `
+                    <div class="signal-list">
+                        ${buys.map(s => `
+                            <div class="signal-item">
+                                <div class="signal-symbol">${s.symbol}</div>
+                                <div><strong>${s.scan_time || ''}</strong></div>
+                                <div class="signal-entry">${s.entry}</div>
+                                <div class="signal-sl">${s.sl}</div>
+                                <div class="signal-target">${s.target_1}</div>
+                                <div style="font-size:11px;color:#6b7280;">${s.grade || ''}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
 
-            document.getElementById('sell-signals-body').innerHTML = sells.length ?
-                `<div class="signal-list">${sells.map(formatSignal).join('')}</div>` :
-                '<p style="color:#9ca3af;">No sell signals</p>';
+            // Render sell signals
+            const sellBody = document.getElementById('sell-signals-body');
+            if (sells.length === 0) {
+                sellBody.innerHTML = '<p style="color:#9ca3af; text-align:center;">No sell signals</p>';
+            } else {
+                sellBody.innerHTML = `
+                    <div class="signal-list">
+                        ${sells.map(s => `
+                            <div class="signal-item">
+                                <div class="signal-symbol">${s.symbol}</div>
+                                <div><strong>${s.scan_time || ''}</strong></div>
+                                <div class="signal-entry">${s.entry}</div>
+                                <div class="signal-sl">${s.sl}</div>
+                                <div class="signal-target">${s.target_1}</div>
+                                <div style="font-size:11px;color:#6b7280;">${s.grade || ''}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
         }
 
-        function formatSignal(s) {
-            return `
-                <div class="signal-item">
-                    <div class="signal-symbol">${s.symbol}</div>
-                    <div><strong>${s.date}</strong></div>
-                    <div class="signal-entry">${s.entry}</div>
-                    <div class="signal-sl">${s.sl}</div>
-                    <div class="signal-target">${s.t1}</div>
-                </div>
-            `;
-        }
-
-        // Render Option Signals
         function renderOptionSignals() {
-            const ceOpts = optionsSignals.filter(o => o.option_type === 'CE');
-            const peOpts = optionsSignals.filter(o => o.option_type === 'PE');
+            // Filter options
+            let filtered = optionsSignals.filter(o => {
+                if (currentFilter === 'all') return true;
+                if (currentFilter === 'CE' || currentFilter === 'PE') {
+                    return o.opt_type === currentFilter;
+                }
+                return o.symbol.includes(currentFilter);
+            });
 
+            // Separate CE/PE
+            const ceOpts = filtered.filter(o => o.opt_type === 'CE');
+            const peOpts = filtered.filter(o => o.opt_type === 'PE');
+
+            // Update counts
             document.getElementById('ce-count-badge').textContent = ceOpts.length;
             document.getElementById('pe-count-badge').textContent = peOpts.length;
 
-            document.getElementById('ce-options-body').innerHTML = ceOpts.length ?
-                `<div class="signal-list">${ceOpts.map(formatOption).join('')}</div>` :
-                '<p style="color:#9ca3af;">No call options</p>';
+            // Render CE options
+            const ceBody = document.getElementById('ce-options-body');
+            if (ceOpts.length === 0) {
+                ceBody.innerHTML = '<p style="color:#9ca3af; text-align:center;">No call options</p>';
+            } else {
+                ceBody.innerHTML = `
+                    <div class="signal-list">
+                        ${ceOpts.map(o => `
+                            <div class="signal-item">
+                                <div class="signal-symbol">${o.symbol}</div>
+                                <div><span class="ce-badge">CE</span></div>
+                                <div>₹${o.strike?.toLocaleString()}</div>
+                                <div class="signal-entry">₹${o.ltp || '-'}</div>
+                                <div style="font-size:11px;color:#6b7280;">${o.days_to_expiry || '-'}d</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
 
-            document.getElementById('pe-options-body').innerHTML = peOpts.length ?
-                `<div class="signal-list">${peOpts.map(formatOption).join('')}</div>` :
-                '<p style="color:#9ca3af;">No put options</p>';
+            // Render PE options
+            const peBody = document.getElementById('pe-options-body');
+            if (peOpts.length === 0) {
+                peBody.innerHTML = '<p style="color:#9ca3af; text-align:center;">No put options</p>';
+            } else {
+                peBody.innerHTML = `
+                    <div class="signal-list">
+                        ${peOpts.map(o => `
+                            <div class="signal-item">
+                                <div class="signal-symbol">${o.symbol}</div>
+                                <div><span class="pe-badge">PE</span></div>
+                                <div>₹${o.strike?.toLocaleString()}</div>
+                                <div class="signal-entry">₹${o.ltp || '-'}</div>
+                                <div style="font-size:11px;color:#6b7280;">${o.days_to_expiry || '-'}d</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
         }
 
-        function formatOption(o) {
-            return `
-                <div class="signal-item">
-                    <div class="signal-symbol">${o.symbol}</div>
-                    <div>Strike: <strong>${o.strike_price}</strong></div>
-                    <div class="signal-entry">${o.entry_price}</div>
-                    <div>P&L: <span style="color:${o.pnl>=0?'#059669':'#dc2626'}">${o.pnl}</span></div>
-                    <div>${o.status}</div>
-                </div>
-            `;
-        }
-
-        // Update Stats
         function updateStats() {
-            const now = new Date();
-            document.getElementById('last-update').textContent = now.toLocaleTimeString('en-US', { hour12: false });
             document.getElementById('total-signals').textContent = signals.length;
-            document.getElementById('buy-count').textContent = signals.filter(s => s.dir === 'BUY').length;
-            document.getElementById('sell-count').textContent = signals.filter(s => s.dir === 'SELL').length;
+            document.getElementById('buy-count').textContent = signals.filter(s => s.direction === 'BUY-LONG').length;
+            document.getElementById('sell-count').textContent = signals.filter(s => s.direction === 'SELL-SHORT').length;
         }
-
-        // Load initial data
-        fetch('/api/signals')
-            .then(r => r.json())
-            .then(data => {
-                signals = data;
-                renderSignals();
-                updateStats();
-            });
-
-        fetch('/api/options-signals')
-            .then(r => r.json())
-            .then(data => {
-                optionsSignals = data;
-                renderOptionSignals();
-            });
     </script>
 </body>
 </html>
