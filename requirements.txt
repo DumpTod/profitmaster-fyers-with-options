@@ -1,20 +1,9 @@
-# Flask Core
 Flask==3.0.0
 Flask-CORS==4.0.0
-flask-socketio==5.3.6
-python-engineio==4.7.1
-python-socketio==5.9.0
-
-# Data Science
-numpy==1.26.3
-pandas==2.1.4
-
-# HTTP Requests
 requests==2.31.0
-
-# Fyers API
+numpy==1.26.4
+pandas==2.2.2
+pytz==2024.1
 fyers-apiv3==3.0.8
-
-# Build Tools (CRITICAL - Fixes Your Error!)
 setuptools>=68.0.0
 wheel>=0.41.0
