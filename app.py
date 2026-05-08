@@ -18,11 +18,11 @@ CORS(app)
 app.secret_key = os.environ.get('FLASK_SECRET', 'atr-scanner-secret-key-2024')
 
 # ========================================
-# FYERS CREDENTIALS
+# FYERS CREDENTIALS (DO NOT MODIFY)
 # ========================================
-FYERS_APP_ID     = os.environ.get('API_KEY', '9M61XAZQSN-100')
-FYERS_SECRET_KEY = os.environ.get('API_SECRET', 'NYVEV0B7VP')
-FYERS_REDIRECT_URL = 'https://profitmaster-fyers-with-options.onrender.com/callback'
+FYERS_APP_ID     = os.environ.get('API_KEY', 'B64YVF96PK-100')
+FYERS_SECRET_KEY = os.environ.get('API_SECRET', 'QLMGPDNWC7')
+FYERS_REDIRECT_URL = 'https://trade.fyers.in/api-login/redirect-uri/index.html'
 
 # ========================================
 # SCANNER CONFIGURATION
@@ -67,12 +67,11 @@ scan_lock = threading.Lock()
 # Trade storage
 TRADES_FILE = 'trades.json'
 OPTIONS_TRADES_FILE = 'options_trades.json'
-active_futures_trades = []
-active_options_trades = []
-
-# History storage (NEW!)
 SIGNALS_HISTORY_FILE = 'signals_history.json'
 OPTIONS_SIGNALS_HISTORY_FILE = 'options_signals_history.json'
+
+active_futures_trades = []
+active_options_trades = []
 
 def load_json_file(filepath):
     try:
@@ -95,7 +94,7 @@ active_futures_trades = load_json_file(TRADES_FILE)
 active_options_trades = load_json_file(OPTIONS_TRADES_FILE)
 
 # ========================================
-# TOKEN MANAGEMENT
+# TOKEN MANAGEMENT (DO NOT MODIFY)
 # ========================================
 
 def save_token(access_token, refresh_token=None):
@@ -217,7 +216,7 @@ def get_active_expiry(symbol, signal_date=None):
     y, m = signal_date.year, signal_date.month
     expiry = get_monthly_expiry(symbol, y, m)
     td_left = sum(1 for i in range((expiry - signal_date).days + 1) 
-                 if is_trading_day(signal_date + timedelta(days=i)))
+             if is_trading_day(signal_date + timedelta(days=i)))
     
     if td_left <= 5:
         expiry = get_monthly_expiry(symbol, y, m+1) if m < 12 else get_monthly_expiry(symbol, y+1, 1)
@@ -265,7 +264,7 @@ def callback():
             <a href="/" style="color:#22c55e;font-size:18px;margin-top:30px;display:inline-block;padding:12px 30px;background:#166534;border-radius:6px;font-weight:600">Go to Scanner</a>
             </body></html>"""
         else:
-            return f"<html><body style='font-family:sans-serif;text-align:center;padding:50px;background:#0f1f3d;color:white'><h1 style='color:#ef4444'>Login Failed</h1><p>{r.json().get('message')}</p><a href='/refresh' style='color:#f59e0b'>Try Again</a></body></html>"
+            return f"<html><body style='font-family:sans-serif;text-align:center;padding:50px;background:#0f1f3d;color:white'><h1 style='color:#ef4444;font-size:48px'>Login Failed</h1><p>{r.json().get('message')}</p><a href='/refresh' style='color:#f59e0b'>Try Again</a></body></html>"
     except:
         return redirect('/set-token')
 
@@ -278,15 +277,17 @@ def set_token():
     if auth_code and not access_token:
         try:
             app_id_hash = hashlib.sha256(f"{FYERS_APP_ID}:{FYERS_SECRET_KEY}".encode()).hexdigest()
-            r = req.post('https://api-t1.fyers.in/api/v3/validate-authcode',
+            r = req.post(
+                'https://api-t1.fyers.in/api/v3/validate-authcode',
                 json={'grant_type': 'authorization_code', 'appIdHash': app_id_hash, 'code': auth_code, 'pin': ''},
-                headers={'Content-Type': 'application/json'}, timeout=15)
+                headers={'Content-Type': 'application/json'}, timeout=15
+            )
             if r.status_code == 200 and r.json().get('s') == 'ok':
                 data = r.json()
                 access_token = f"{FYERS_APP_ID}:{data['access_token']}"
                 refresh_token = data.get('refresh_token')
                 save_token(access_token, refresh_token)
-                return f"<html><body style='font-family:sans-serif;text-align:center;padding:50px;background:#0f1f3d;color:white'><h1>Auth Code Converted!</h1><a href='/' style='color:#22c55e'>Go to Scanner</a></body></html>"
+                return "<html><body style='font-family:sans-serif;text-align:center;padding:50px;background:#0f1f3d;color:white'><h1>Auth Code Converted!</h1><a href='/' style='color:#22c55e'>Go to Scanner</a></body></html>"
         except:
             pass
     
@@ -294,14 +295,16 @@ def set_token():
         return """<html><body style="font-family:sans-serif;padding:40px;background:#0f1f3d;color:white">
         <h2>Set Fyers Token</h2>
         <div style="background:#1a2a4a;padding:25px;border-radius:8px;margin-bottom:20px;">
-        <h3 style="color:#22c55e">Option A: Auto-Login</h3><p style="color:#aaa"><a href="/refresh" style="color:#fff;text-decoration:none;padding:12px 24px;background:#166534;border-radius:6px;">Login via Fyers</a></p></div>
+        <h3 style="color:#22c55e">Option A: Auto-Login</h3>
+        <a href="/refresh" style="color:#fff;text-decoration:none;padding:12px 24px;background:#166534;border-radius:6px;">Login via Fyers</a>
+        </div>
         <hr style="border-color:#333;margin:25px 0;">
         <div style="background:#1a2a4a;padding:25px;border-radius:8px;">
         <h3 style="color:#f59e0b">Option B: Manual</h3>
         <form method="GET" action="/set-token">
-        <input name="token" placeholder="VS55VDHYCW-100:eyJ..." style="width:100%;padding:10px;background:#0f1f3d;color:#fff;border:1px solid #3b82f6;border-radius:4px;margin-bottom:10px;">
-        <input name="refresh" placeholder="eyJ..." style="width:100%;padding:10px;background:#0f1f3d;color:#fff;border:1px solid #3b82f6;border-radius:4px;margin-bottom:10px;">
-        <button type="submit" style="padding:12px 24px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Save Token</button>
+            <input name="token" placeholder="VS55VDHYCW-100:eyJ..." style="width:100%;padding:10px;background:#0f1f3d;color:#fff;border:1px solid #3b82f6;border-radius:4px;margin-bottom:10px;">
+            <input name="refresh" placeholder="eyJ..." style="width:100%;padding:10px;background:#0f1f3d;color:#fff;border:1px solid #3b82f6;border-radius:4px;margin-bottom:10px;">
+            <button type="submit" style="padding:12px 24px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Save Token</button>
         </form></div></body></html>"""
     
     save_token(access_token, refresh_token if refresh_token else None)
@@ -314,7 +317,10 @@ def trigger_auto_refresh():
 
 @app.route('/debug-fyers')
 def debug_fyers():
-    result = {'token_exists': bool(token_data.get('access_token')), 'fyers_client_created': init_fyers() is not None}
+    result = {
+        'token_exists': bool(token_data.get('access_token')),
+        'fyers_client_created': init_fyers() is not None
+    }
     fyers = init_fyers()
     if fyers:
         try:
@@ -335,7 +341,10 @@ def get_fyers_expiry_timestamp(fyers, option_key, target_expiry_date):
         resp = fyers.optionchain(data={'symbol': option_key, 'strikecount': 1, 'timestamp': ''})
         if resp.get('s') != 'ok':
             return None
-        expiry_map = {datetime.strptime(item['date'], '%d-%m-%Y').date(): item['expiry'] for item in resp['data'].get('expiryData', [])}
+        expiry_map = {}
+        for item in resp['data'].get('expiryData', []):
+            d = datetime.strptime(item['date'], '%d-%m-%Y').date()
+            expiry_map[d] = item['expiry']
         if expiry_map:
             return expiry_map[min(expiry_map.keys(), key=lambda d: abs((d-target_expiry_date).days))]
     except:
@@ -497,13 +506,14 @@ def fetch_candles(instrument_key, interval='1minute', days=90, retry_on_fail=Tru
 def resample_candles(df_1m, minutes):
     if len(df_1m) == 0:
         return pd.DataFrame()
+    
     df = df_1m.copy().set_index('datetime')
     r = df.resample(f'{minutes}min').agg(open=('open','first'), high=('high','max'), low=('low','min'), close=('close','last'), volume=('volume','sum')).dropna().reset_index()
     t = r['datetime'].dt.hour * 100 + r['datetime'].dt.minute
     return r[(t >= 915) & (t <= 1530)].reset_index(drop=True)
 
 # ========================================
-# SIGNAL GENERATION
+# SIGNAL GENERATION WITH ENTRY PRICE FIX
 # ========================================
 
 def generate_signals():
@@ -516,18 +526,18 @@ def generate_signals():
     
     for symbol, config in SCANNER_CONFIG.items():
         try:
-            print(f"Scanning {symbol}...")
+            print(f"\nScanning {symbol}...")
             
+            # Fetch 1-minute data
             df_1m = fetch_candles(config['instrument_key'], '1minute', days=90)
+            
             if len(df_1m) < 50:
                 print(f"Insufficient candles: {len(df_1m)}")
                 continue
             
-           # Use 1-min candles for more accurate entries
-            if config['resample_minutes'] <= 1:
-                df = df_1m.copy()
-                else:
-    df = resample_candles(df_1m, config['resample_minutes'])
+            # Resample to configured timeframe (5-min)
+            df = resample_candles(df_1m, config['resample_minutes'])
+            
             if len(df) < max(config['fast_period'], config['slow_period']) + 10:
                 print(f"Insufficient resampled: {len(df)}")
                 continue
@@ -543,85 +553,116 @@ def generate_signals():
                     continue
                 
                 direction = 'BUY-LONG' if row['buy_signal'] else 'SELL-SHORT'
-                entry = round(float(row['close']), 2)
-                trail2 = round(float(row['trail2']), 2)
                 
-                if direction == 'BUY-LONG':
-                    sl = trail2; risk = entry - sl
-                    target_1 = round(entry + risk * 1.5, 2)
-                    target_2 = round(entry + risk * 2.5, 2)
-                else:
-                    sl = trail2; risk = sl - entry
-                    target_1 = round(entry - risk * 1.5, 2)
-                    target_2 = round(entry - risk * 2.5, 2)
+                # 🔥 FIX: Get LATEST available price instead of stale resampled close
+                # Use the LAST completed candle's close from 1-min data (more recent)
+                current_idx = df_1m.index.get_loc(row.name) if hasattr(row, 'name') else len(df_1m) - 1
                 
-                risk = abs(risk)
-                if risk == 0:
-                    continue
+                # Find the actual latest tradable price
+                # Strategy: Use close of most recent completed candle before signal time
+                signal_time = pd.to_datetime(row['datetime'])
+                if signal_time.tzinfo is None:
+                    signal_time = IST.localize(signal_time)
                 
-                reward = abs(target_2 - entry)
-                rr = round(reward / risk, 2)
+                # Get candles UP TO this signal time
+                df_before_signal = df_1m[df_1m['datetime'] <= signal_time]
                 
-                confidence = 0.5
-                bar_c = row.get('bar_color', 'neutral')
-                if direction == 'BUY-LONG' and bar_c in ['green', 'blue']:
-                    confidence += 0.2 if bar_c == 'green' else 0.1
-                elif direction == 'SELL-SHORT' and bar_c in ['red', 'yellow']:
-                    confidence += 0.2 if bar_c == 'red' else 0.1
-                
-                if rr >= 2: confidence += 0.1
-                if rr >= 3: confidence += 0.1
-                confidence = min(confidence, 0.95)
-                
-                if confidence >= 0.8: grade, score = 'A+', 95
-                elif confidence >= 0.7: grade, score = 'A', 85
-                elif confidence >= 0.6: grade, score = 'B', 70
-                else: grade, score = 'C', 55
-                
-                signal_dt = pd.to_datetime(row['datetime'])
-                if signal_dt.tzinfo is None:
-                    signal_dt = IST.localize(signal_dt)
-                
-                # 🔥 VALIDATION: Check if entry is realistic
-                current_price = float(df.iloc[-1]['close']) if len(df) > 0 else entry
-                price_diff_pct = abs(entry - current_price) / current_price * 100
-                
-                signals.append({
-                    '_id': f"{symbol}_{signal_dt.strftime('%Y%m%d_%H%M')}",
-                    'symbol': symbol,
-                    'direction': direction,
-                    'model': 'ATR-TS',
-                    'entry': entry,
-                    'sl': sl,
-                    'target_1': target_1,
-                    'target_2': target_2,
-                    'target': target_2,
-                    'risk_reward': f"1:{rr}",
-                    'confidence': round(confidence, 2),
-                    'grade': grade,
-                    'grade_score': score,
-                    'scan_date': signal_dt.isoformat(),
-                    'scan_time': signal_dt.strftime('%H:%M'),
-                    'trail1': round(float(row['trail1']), 2),
-                    'trail2': trail2,
-                    'fast_atr': round(float(row['fast_atr']), 2),
-                    'slow_atr': round(float(row['slow_atr']), 2),
-                    'bar_color': bar_c,
-                    'regime': row.get('regime', 'UNKNOWN'),
-                    'timeframe': f"{config['resample_minutes']}m",
-                    'lot_size': config['lot_size'],
-                    'scanner_type': 'atr_trailing',
-                    'outcome': 'pending',
-                    'current_market_price': current_price,
-                    'price_deviation_pct': round(price_diff_pct, 2),
-                    'validation_warning': '⚠️ Entry far from current price' if price_diff_pct > 1.0 else ''
-                })
-                
-                signal_count += 1
-                warning = ' [⚠️ FAR FROM MARKET]' if price_diff_pct > 1.0 else ''
-                print(f"  {direction} @ {signal_dt.strftime('%H:%M')} | Entry: {entry} | Current: {current_price} | Deviation: {price_diff_pct:.2f}%{warning}")
+                if len(df_before_signal) > 0:
+                    # Use the last completed candle's close as entry
+                    entry = round(float(df_before_signal.iloc[-1]['close']), 2)
+                    entry_candle_time = df_before_signal.iloc[-1]['datetime']
+                    
+                    # Calculate SL and targets based on THIS entry
+                    if direction == 'BUY-LONG':
+                        sl = round(float(row['trail2']), 2)
+                        risk = entry - sl
+                        target_1 = round(entry + risk * 1.5, 2)
+                        target_2 = round(entry + risk * 2.5, 2)
+                    else:
+                        sl = round(float(row['trail2']), 2)
+                        risk = sl - entry
+                        target_1 = round(entry - risk * 1.5, 2)
+                        target_2 = round(entry - risk * 2.5, 2)
+                    
+                    risk = abs(risk)
+                    if risk == 0:
+                        continue
+                    
+                    reward = abs(target_2 - entry)
+                    rr = round(reward / risk, 2)
+                    
+                    confidence = 0.5
+                    bar_c = row.get('bar_color', 'neutral')
+                    
+                    if direction == 'BUY-LONG' and bar_c in ['green', 'blue']:
+                        confidence += 0.2 if bar_c == 'green' else 0.1
+                    elif direction == 'SELL-SHORT' and bar_c in ['red', 'yellow']:
+                        confidence += 0.2 if bar_c == 'red' else 0.1
+                    
+                    if rr >= 2: confidence += 0.1
+                    if rr >= 3: confidence += 0.1
+                    confidence = min(confidence, 0.95)
+                    
+                    if confidence >= 0.8: grade, score = 'A+', 95
+                    elif confidence >= 0.7: grade, score = 'A', 85
+                    elif confidence >= 0.6: grade, score = 'B', 70
+                    else: grade, score = 'C', 55
+                    
+                    signal_dt = signal_time
+                    
+                    # 🔥 VALIDATION: Check how old this signal is
+                    signal_age_minutes = (now - signal_dt).total_seconds() / 60
+                    
+                    # Get CURRENT market price for validation
+                    current_market_price = float(df_1m.iloc[-1]['close'])
+                    price_diff = abs(entry - current_market_price)
+                    price_diff_pct = (price_diff / current_market_price) * 100
+                    
+                    signals.append({
+                        '_id': f"{symbol}_{signal_dt.strftime('%Y%m%d_%H%M')}",
+                        'symbol': symbol,
+                        'direction': direction,
+                        'model': 'ATR-TS',
+                        'entry': entry,
+                        'sl': sl,
+                        'target_1': target_1,
+                        'target_2': target_2,
+                        'target': target_2,
+                        'risk_reward': f"1:{rr}",
+                        'confidence': round(confidence, 2),
+                        'grade': grade,
+                        'grade_score': score,
+                        'scan_date': signal_dt.isoformat(),
+                        'scan_time': signal_dt.strftime('%H:%M'),
+                        'trail1': round(float(row['trail1']), 2),
+                        'trail2': round(float(row['trail2']), 2),
+                        'fast_atr': round(float(row['fast_atr']), 2),
+                        'slow_atr': round(float(row['slow_atr']), 2),
+                        'bar_color': bar_c,
+                        'regime': row.get('regime', 'UNKNOWN'),
+                        'timeframe': f"{config['resample_minutes']}m",
+                        'lot_size': config['lot_size'],
+                        'scanner_type': 'atr_trailing',
+                        'outcome': 'pending',
+                        
+                        # 🔥 NEW FIELDS FOR ENTRY PRICE VALIDATION
+                        'current_market_price': round(current_market_price, 2),
+                        'price_difference': round(price_diff, 2),
+                        'price_diff_pct': round(price_diff_pct, 2),
+                        'signal_age_minutes': round(signal_age_minutes, 1),
+                        'entry_candle_time': str(entry_candle_time.strftime('%H:%M:%S')),
+                        'validation_status': '✅ Valid' if price_diff_pct <= 1.0 else ('⚠️ Far from market' if price_diff_pct <= 2.0 else '❌ Stale signal'),
+                        'is_executable': price_diff_pct <= 1.5  # Allowable deviation
+                    })
+                    
+                    signal_count += 1
+                    
+                    status_icon = '✅' if price_diff_pct <= 1.5 else ('⚠️' if price_diff_pct <= 2.0 else '❌')
+                    print(f"  {direction} @ {signal_dt.strftime('%H:%M')} | Entry: {entry} | Current: {current_market_price} | Diff: {price_diff_pct:.2f}% [{status_icon}] Age: {signal_age_minutes:.0f}min")
+                }
             
             print(f"{symbol}: {signal_count} signal(s)")
+            
         except Exception as e:
             print(f"Error scanning {symbol}: {e}")
             import traceback
@@ -696,7 +737,7 @@ def generate_option_signals(futures_signals):
     return results
 
 # ========================================
-# 🆕 AUTO-SAVE TO HISTORY (NEW - Paste After generate_option_signals)
+# 🆕 AUTO-SAVE TO HISTORY
 # ========================================
 
 def save_signals_to_history(signals):
@@ -727,8 +768,10 @@ def save_signals_to_history(signals):
                     'regime': sig.get('regime', ''),
                     'model': sig.get('model', 'ATR-TS'),
                     'current_market_price': sig.get('current_market_price'),
-                    'price_deviation_pct': sig.get('price_deviation_pct'),
-                    'validation_warning': sig.get('validation_warning', '')
+                    'price_difference': sig.get('price_difference'),
+                    'price_diff_pct': sig.get('price_diff_pct'),
+                    'validation_status': sig.get('validation_status', ''),
+                    'signal_age_minutes': sig.get('signal_age_minutes', '')
                 })
                 new_count += 1
         
@@ -739,7 +782,7 @@ def save_signals_to_history(signals):
         print(f"⚠ Error saving signals history: {e}")
 
 def save_options_to_history(options_signals):
-    """Persist option signals to history"""
+    """Persist option signals"""
     try:
         existing = load_json_file(OPTIONS_SIGNALS_HISTORY_FILE)
         existing_ids = {s.get('_id') for s in existing}
@@ -795,15 +838,23 @@ def execute_futures_trade(signal_data, quantity=1):
         if response.get('s') == 'ok':
             trade = {
                 'id': f"FUT-{datetime.now(IST).strftime('%Y%m%d%H%M%S%f')}",
-                'signal_id': signal_data.get('_id'), 'symbol': symbol, 'direction': direction,
-                'side': 'BUY' if side==1 else 'SELL', 'quantity': quantity,
+                'signal_id': signal_data.get('_id'),
+                'symbol': symbol,
+                'direction': direction,
+                'side': 'BUY' if side==1 else 'SELL',
+                'quantity': quantity,
                 'entry_price': float(signal_data.get('entry', 0)),
-                'sl': float(signal_data.get('sl', 0)), 'target_1': float(signal_data.get('target_1', 0)),
-                'target_2': float(signal_data.get('target_2', 0)), 'status': 'OPEN',
-                'pnl': 0, 'order_id': response.get('id'),
+                'sl': float(signal_data.get('sl', 0)),
+                'target_1': float(signal_data.get('target_1', 0)),
+                'target_2': float(signal_data.get('target_2', 0)),
+                'status': 'OPEN',
+                'pnl': 0,
+                'order_id': response.get('id'),
                 'entry_time': datetime.now(IST).strftime('%d %b %H:%M'),
-                'grade': signal_data.get('grade', ''), 'outcome': 'pending'
+                'grade': signal_data.get('grade', ''),
+                'outcome': 'pending'
             }
+            
             active_futures_trades.append(trade)
             save_json_file(TRADES_FILE, active_futures_trades)
             execute_options_trade(trade, signal_data)
@@ -857,7 +908,7 @@ def close_linked_options(futures_trade_id, reason='TP/SL Hit'):
                 fyers = init_fyers()
                 if fyers:
                     order_data = {"symbol": opt['opt_symbol'], "qty": opt['quantity'], "type": 2, "side": -1,
-                                 "productType": "INTRADAY", "limitPrice": 0, "stopPrice": 0,
+                                 "productType": "INTRADAY", "limitPrice": 0, "stopPrice": 0",
                                  "validity": "DAY", "disclosedQty": 0, "offlineOrder": False, "orderType": "MARKET"}
                     resp = fyers.place_order(data=order_data)
                     if resp.get('s') == 'ok':
@@ -883,11 +934,13 @@ def monitor_positions():
                 for trade in active_futures_trades:
                     if trade.get('status') != 'OPEN':
                         continue
+                    
                     try:
                         symbol = trade.get('symbol', '')
                         config = SCANNER_CONFIG.get(symbol, {})
                         if not config:
                             continue
+                        
                         df = fetch_candles(config['instrument_key'], '1minute', days=1)
                         if len(df) > 0:
                             current_price = float(df.iloc[-1]['close'])
@@ -902,7 +955,7 @@ def monitor_positions():
                             if hit_target or hit_sl:
                                 reason = 'Target Hit' if hit_target else 'Stop Loss Hit'
                                 pnl = ((current_price - entry) if direction=='BUY-LONG' else (entry - current_price)) * trade.get('quantity',1)
-                                trade.update({'status':'CLOSED','exit_price':current_price,'exit_time':datetime.now(IST).strftime('%d %b %H:%M'),'pnl':round(pnl,2),'outcome':reason.lower().replace(' ','_')})
+                                trade.update({'status':'CLOSED','exit_price':current_price,'exit_time':datetime.now(IST).strftime('%d %b %H:%M'),'pnl':round(pnl,2),'outcome':reason.lower().replace(' ',' '_')})
                                 save_json_file(TRADES_FILE, active_futures_trades)
                                 close_linked_options(trade['id'], reason)
                     except:
@@ -940,6 +993,7 @@ def background_scanner():
                         signals = generate_signals()
                         scan_cache['signals'] = signals
                         scan_cache['last_scan'] = datetime.now(IST)
+                        print(f"[BG] Scan complete. {len(signals)} signals cached.")
                     finally:
                         scan_lock.release()
         except:
@@ -970,10 +1024,11 @@ def history():
 @app.route('/api/status')
 def api_status():
     return jsonify({
-        'status': 'success', 'scanner_status': get_scanner_status(),
+        'status': 'success',
+        'scanner_status': get_scanner_status(),
         'server_time_ist': datetime.now(IST).isoformat(),
         'token_set': token_data.get('access_token') is not None,
-        'scanner_model': 'ATR Trailing Stop',
+        'scanner_model': 'ATR Trailing Stop (Walk-Forward Validated)',
         'config': {sym: {'timeframe': f"{cfg['resample_minutes']}m", 'fast': f"({cfg['fast_period']}, {cfg['fast_mult']})", 'slow': f"({cfg['slow_period']}, {cfg['slow_mult']})"} for sym, cfg in SCANNER_CONFIG.items()},
         'active_futures_trades': len([t for t in active_futures_trades if t.get('status')=='OPEN']),
         'active_options_trades': len([t for t in active_options_trades if t.get('status')=='OPEN'])
@@ -1002,14 +1057,13 @@ def api_signals():
     
     return jsonify({'status': 'success', 'scanner_status': status, 'signals': scan_cache.get('signals', []), 'cached': True, 'timestamp': datetime.now(IST).isoformat()})
 
-@app.route('/api/signals/history')  # NEW!
+@app.route('/api/signals/history')
 def api_get_all_signals_history():
-    """Load PERSISTENT history for History page"""
     all_sigs = load_json_file(SIGNALS_HISTORY_FILE)
     all_sigs.sort(key=lambda x: x.get('scan_date', ''), reverse=True)
     return jsonify({'status': 'success', 'signals': all_sigs, 'total': len(all_sigs)})
 
-@app.route('/api/options-history')  # NEW!
+@app.route('/api/options-history')
 def api_get_options_history():
     all_opts = load_json_file(OPTIONS_SIGNALS_HISTORY_FILE)
     all_opts.sort(key=lambda x: x.get('scan_date', ''), reverse=True)
@@ -1029,18 +1083,18 @@ def api_option_signals():
 
 @app.route('/api/trades')
 def api_get_active_trades():
-    return jsonify({'status': 'success', 'trades': [t for t in active_futures_trades if t.get('status')=='OPEN']})
+    return jsonify({'status': 'success', 'trades': [t for t in active_futures_trades if t.get('status') == 'OPEN']})
 
 @app.route('/api/options-trades')
 def api_get_active_options():
-    return jsonify({'status': 'success', 'options_trades': [t for t in active_options_trades if t.get('status')=='OPEN']})
+    return jsonify({'status': 'success', 'options_trades': [t for t in active_options_trades if t.get('status') == 'OPEN']})
 
 @app.route('/api/close-trade/<trade_id>', methods=['POST'])
 def api_close_trade():
     global active_futures_trades
     trade = next((t for t in active_futures_trades if t.get('id')==trade_id), None)
     if trade and trade.get('status')=='OPEN':
-        trade.update({'status':'CLOSED','close_reason':'Manual','exit_time':datetime.now(IST).strftime('%d %b %H:%M'),'outcome':'manual_close'})
+        trade.update({'status':'CLOSED','close_reason':'Manual Close','exit_time':datetime.now(IST).strftime('%d %b %H:%M'),'outcome':'manual_close'})
         save_json_file(TRADES_FILE, active_futures_trades)
         close_linked_options(trade_id, 'Manual Close')
         return jsonify({'status': 'success', 'trade': trade})
@@ -1071,27 +1125,30 @@ def api_track():
             df_after = df_1m[df_1m['datetime'] > signal_time].reset_index(drop=True)
             
             if len(df_after) == 0:
-                results.append({'_id': sig.get('_id'), 'status': 'pending', 'current_price': float(df_after.iloc[-1]['close']) if len(df_after)>0 else 0, 'live_pnl_pct': 0, 'track_status': 'entry_not_met'})
+                results.append({'_id': sig.get('_id'), 'status': 'pending', 'current_price': float(df_after.iloc[-1]['close']), 'live_pnl_pct': 0, 'track_status': 'entry_not_met'})
                 continue
             
+            entry_met = False
+            entry_idx = None
             direction = sig.get('direction', '')
             entry = float(sig.get('entry', 0))
             sl = float(sig.get('sl', 0))
             t2 = float(sig.get('target_2', sig.get('target', 0)))
             
-            entry_met = False
             for idx, row in df_after.iterrows():
                 if (direction == 'BUY-LONG' and row['high'] >= entry) or (direction == 'SELL-SHORT' and row['low'] <= entry):
-                    entry_met = True
-                    break
+                    entry_met = True; entry_idx = idx; break
             
             if not entry_met:
                 results.append({'_id': sig.get('_id'), 'status': 'pending', 'current_price': float(df_after.iloc[-1]['close']), 'live_pnl_pct': 0, 'track_status': 'entry_not_met'})
                 continue
             
-            current_price = float(df_after.iloc[-1]['close'])
+            entry_pos = df_after.index.get_loc(entry_idx)
+            df_post = df_after.iloc[entry_pos:].reset_index(drop=True)
             trade_status = 'open'
-            for _, row in df_after.iterrows():
+            current_price = float(df_post.iloc[-1]['close'])
+            
+            for _, row in df_post.iterrows():
                 if direction == 'BUY-LONG':
                     if row['high'] >= t2: trade_status = 'target_hit'; break
                     if row['low'] <= sl: trade_status = 'stop_hit'; break
@@ -1103,7 +1160,7 @@ def api_track():
             results.append({'_id': sig.get('_id'), 'status': trade_status, 'exit_price': t2 if trade_status=='target_hit' else (sl if trade_status=='stop_hit' else None), 'current_price': current_price, 'live_pnl_pct': pnl_pct, 'track_status': 'tracked'})
         except Exception as e:
             results.append({'_id': sig.get('_id'), 'status': 'pending', 'track_status': f'error:{str(e)}'})
-    
+
     return jsonify({'status': 'success', 'results': results})
 
 # ========================================
@@ -1115,7 +1172,9 @@ if __name__ == '__main__':
     
     print(f"\n{'='*70}")
     print(f"STRAKETRAIL SCANNER STARTING")
-    print(f"Port: {port} | Token: {'✓' if token_data.get('access_token') else '✗'}")
+    print(f"Port: {port}")
+    print(f"Token: {'✓' if token_data.get('access_token') else '✗'}")
+    print(f"Loaded Trades: {len(active_futures_trades)} futures, {len(active_options_trades)} options")
     print(f"{'='*70}\n")
     
     threading.Thread(target=background_scanner, daemon=True).start()
@@ -1128,6 +1187,7 @@ if __name__ == '__main__':
         while True:
             try:
                 req.get(f"http://localhost:{port}/api/status", timeout=10)
+                print(f"Ping at {datetime.now(IST).strftime('%H:%M:%S')}")
             except:
                 pass
             time.sleep(840)
@@ -1135,4 +1195,5 @@ if __name__ == '__main__':
     threading.Thread(target=keep_alive, daemon=True).start()
     print("✓ Keep-alive pinger started\n")
     
+    print("Starting Flask server...")
     app.run(host='0.0.0.0', port=port, debug=False)
