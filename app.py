@@ -17,16 +17,16 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get('FLASK_SECRET', 'atr-scanner-secret-key-2024')
 
-# ========================================
+# =========================================
 # FYERS CREDENTIALS (DO NOT MODIFY)
-# ========================================
+# =========================================
 FYERS_APP_ID     = os.environ.get('API_KEY', 'B64YVF96PK-100')
 FYERS_SECRET_KEY = os.environ.get('API_SECRET', 'QLMGPDNWC7')
 FYERS_REDIRECT_URL = 'https://trade.fyers.in/api-login/redirect-uri/index.html'
 
-# ========================================
+# =========================================
 # SCANNER CONFIGURATION
-# ========================================
+# =========================================
 SCANNER_CONFIG = {
     'NIFTY50': {
         'instrument_key': 'NSE:NIFTY50-INDEX',
@@ -52,13 +52,12 @@ SCANNER_CONFIG = {
     }
 }
 
-# ========================================
+# =========================================
 # GLOBAL VARIABLES
-# ========================================
+# =========================================
 IST = pytz.timezone('Asia/Kolkata')
 TOKEN_FILE = '/tmp/token.json'
 REFRESH_FILE = '/tmp/refresh_token.txt'
-
 token_data = {'access_token': None, 'token_time': None, 'refresh_token': None}
 scan_cache = {'signals': [], 'last_scan': None}
 options_cache = {'signals': [], 'last_fetch': None}
@@ -69,7 +68,6 @@ TRADES_FILE = 'trades.json'
 OPTIONS_TRADES_FILE = 'options_trades.json'
 SIGNALS_HISTORY_FILE = 'signals_history.json'
 OPTIONS_SIGNALS_HISTORY_FILE = 'options_signals_history.json'
-
 active_futures_trades = []
 active_options_trades = []
 
@@ -93,14 +91,12 @@ def save_json_file(filepath, data):
 active_futures_trades = load_json_file(TRADES_FILE)
 active_options_trades = load_json_file(OPTIONS_TRADES_FILE)
 
-# ========================================
+# =========================================
 # TOKEN MANAGEMENT (DO NOT MODIFY)
-# ========================================
-
+# =========================================
 def save_token(access_token, refresh_token=None):
     token_data['access_token'] = access_token
     token_data['token_time'] = datetime.now(IST).isoformat()
-    
     if refresh_token:
         token_data['refresh_token'] = refresh_token
         try:
@@ -108,7 +104,6 @@ def save_token(access_token, refresh_token=None):
                 f.write(refresh_token)
         except:
             pass
-    
     try:
         with open(TOKEN_FILE, 'w') as f:
             json.dump(token_data, f)
@@ -122,7 +117,6 @@ def load_token():
             token_data.update(data)
     except:
         pass
-    
     if not token_data.get('refresh_token'):
         try:
             with open(REFRESH_FILE, 'r') as f:
@@ -134,7 +128,6 @@ def auto_refresh_access_token():
     refresh_token = token_data.get('refresh_token')
     if not refresh_token:
         return False
-    
     try:
         app_id_hash = hashlib.sha256(f"{FYERS_APP_ID}:{FYERS_SECRET_KEY}".encode()).hexdigest()
         r = req.post(
@@ -157,7 +150,6 @@ def auto_refresh_access_token():
     return False
 
 load_token()
-
 if not token_data.get('access_token') and token_data.get('refresh_token'):
     print("Attempting auto-refresh...")
     auto_refresh_access_token()
@@ -175,9 +167,9 @@ def init_fyers():
         print(f"init_fyers error: {e}")
         return None
 
-# ========================================
+# =========================================
 # TRADING HOLIDAYS
-# ========================================
+# =========================================
 TRADING_HOLIDAYS = {
     date(2024,1,26), date(2024,3,25), date(2024,4,14), date(2024,4,17),
     date(2024,5,1), date(2024,6,17), date(2024,8,15), date(2024,10,2),
@@ -212,12 +204,11 @@ def get_active_expiry(symbol, signal_date=None):
         signal_date = datetime.now(IST).date()
     if isinstance(signal_date, str):
         signal_date = date.fromisoformat(signal_date[:10])
-    
     y, m = signal_date.year, signal_date.month
     expiry = get_monthly_expiry(symbol, y, m)
     td_left = sum(1 for i in range((expiry - signal_date).days + 1) 
              if is_trading_day(signal_date + timedelta(days=i)))
-    
+
     if td_left <= 5:
         expiry = get_monthly_expiry(symbol, y, m+1) if m < 12 else get_monthly_expiry(symbol, y+1, 1)
     return expiry
@@ -225,10 +216,9 @@ def get_active_expiry(symbol, signal_date=None):
 def round_to_strike(price, step):
     return round(round(price / step) * step, 2)
 
-# ========================================
+# =========================================
 # AUTHENTICATION ROUTES
-# ========================================
-
+# =========================================
 @app.route('/refresh')
 def refresh_token_route():
     auth_url = (
@@ -245,7 +235,6 @@ def callback():
     auth_code = request.args.get('code', '')
     if not auth_code:
         return redirect('/set-token')
-    
     try:
         app_id_hash = hashlib.sha256(f"{FYERS_APP_ID}:{FYERS_SECRET_KEY}".encode()).hexdigest()
         r = req.post(
@@ -258,7 +247,7 @@ def callback():
         if r.status_code == 200 and r.json().get('s') == 'ok':
             data = r.json()
             save_token(f"{FYERS_APP_ID}:{data['access_token']}", data.get('refresh_token'))
-            return f"""<html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f1f3d;color:white">
+            return """<html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f1f3d;color:white">
             <h1 style="font-size:48px">Login Successful!</h1>
             <p style="color:#22c55e;font-size:18px;margin-top:20px">Access token generated!</p>
             <a href="/" style="color:#22c55e;font-size:18px;margin-top:30px;display:inline-block;padding:12px 30px;background:#166534;border-radius:6px;font-weight:600">Go to Scanner</a>
@@ -290,7 +279,7 @@ def set_token():
                 return "<html><body style='font-family:sans-serif;text-align:center;padding:50px;background:#0f1f3d;color:white'><h1>Auth Code Converted!</h1><a href='/' style='color:#22c55e'>Go to Scanner</a></body></html>"
         except:
             pass
-    
+
     if not access_token:
         return """<html><body style="font-family:sans-serif;padding:40px;background:#0f1f3d;color:white">
         <h2>Set Fyers Token</h2>
@@ -306,7 +295,7 @@ def set_token():
             <input name="refresh" placeholder="eyJ..." style="width:100%;padding:10px;background:#0f1f3d;color:#fff;border:1px solid #3b82f6;border-radius:4px;margin-bottom:10px;">
             <button type="submit" style="padding:12px 24px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Save Token</button>
         </form></div></body></html>"""
-    
+
     save_token(access_token, refresh_token if refresh_token else None)
     return f"<html><body style='font-family:sans-serif;text-align:center;padding:50px;background:#0f1f3d;color:white'><h1 style='font-size:48px'>Token Saved!</h1><a href='/' style='color:#22c55e'>Go to Scanner</a></body></html>"
 
@@ -332,10 +321,9 @@ def debug_fyers():
             result['error'] = str(e)
     return jsonify(result)
 
-# ========================================
+# =========================================
 # OPTION CHAIN FUNCTIONS
-# ========================================
-
+# =========================================
 def get_fyers_expiry_timestamp(fyers, option_key, target_expiry_date):
     try:
         resp = fyers.optionchain(data={'symbol': option_key, 'strikecount': 1, 'timestamp': ''})
@@ -355,10 +343,9 @@ def get_tp1_option(symbol, tp1_price, option_type, expiry_date):
     fyers = init_fyers()
     if not fyers:
         return None, None, None
-    
     config = SCANNER_CONFIG.get(symbol, {})
     step = config.get('strike_step', 50)
-    
+
     try:
         expiry_ts = get_fyers_expiry_timestamp(fyers, config.get('option_key', ''), expiry_date)
         if not expiry_ts:
@@ -378,23 +365,21 @@ def get_tp1_option(symbol, tp1_price, option_type, expiry_date):
         pass
     return None, None, None
 
-# ========================================
+# =========================================
 # ATR TRAILING STOP CALCULATOR
-# ========================================
-
+# =========================================
 def calculate_atr_trailing(df, fast_period, fast_mult, slow_period, slow_mult):
     df = df.copy()
     hi, lo, cl = df['high'].values, df['low'].values, df['close'].values
     n = len(df)
-    
     if n < max(fast_period, slow_period) + 5:
         return df
-    
+
     tr = np.empty(n)
     tr[0] = hi[0] - lo[0]
     for i in range(1, n):
         tr[i] = max(hi[i]-lo[i], abs(hi[i]-cl[i-1]), abs(lo[i]-cl[i-1]))
-    
+
     def rma(arr, period):
         a = np.zeros(n)
         if n < period:
@@ -403,14 +388,14 @@ def calculate_atr_trailing(df, fast_period, fast_mult, slow_period, slow_mult):
         for i in range(period, n):
             a[i] = (a[i-1]*(period-1) + arr[i]) / period
         return a
-    
+
     fast_atr = rma(tr, fast_period) * fast_mult
     slow_atr = rma(tr, slow_period) * slow_mult
-    
+
     def trail(atr_sl):
         t = np.zeros(n)
         for i in range(1, n):
-            sc, pt, ps = cl[i], t[i-1], cl[i-1]
+            sc, pt, ps = cl[i], t[i-1], cl[i-1] 
             if sc > pt and ps > pt:
                 t[i] = max(pt, sc - atr_sl[i])
             elif sc < pt and ps < pt:
@@ -420,27 +405,27 @@ def calculate_atr_trailing(df, fast_period, fast_mult, slow_period, slow_mult):
             else:
                 t[i] = sc + atr_sl[i]
         return t
-    
+
     t1 = trail(fast_atr)
     t2 = trail(slow_atr)
-    
+
     df['trail1'] = t1
-    df['trail2'] = t2
+    df['trail2'] = t2 
     df['fast_atr'] = fast_atr / fast_mult
     df['slow_atr'] = slow_atr / slow_mult
-    
+
     buy = np.zeros(n, bool)
     sell = np.zeros(n, bool)
-    
+
     for i in range(1, n):
         if t1[i] > t2[i] and t1[i-1] <= t2[i-1]:
             buy[i] = True
         if t1[i] < t2[i] and t1[i-1] >= t2[i-1]:
             sell[i] = True
-    
+
     df['buy_signal'] = buy
     df['sell_signal'] = sell
-    
+
     bar_color = []
     for i in range(n):
         if t1[i] > t2[i] and cl[i] > t2[i] and lo[i] > t2[i]:
@@ -453,24 +438,22 @@ def calculate_atr_trailing(df, fast_period, fast_mult, slow_period, slow_mult):
             bar_color.append('yellow')
         else:
             bar_color.append('neutral')
-    
+
     df['bar_color'] = bar_color
     df['regime'] = np.where(t1 > t2, 'BULL', 'BEAR')
     return df
 
-# ========================================
+# =========================================
 # DATA FETCHING
-# ========================================
-
+# =========================================
 def fetch_candles(instrument_key, interval='1minute', days=90, retry_on_fail=True):
     fyers = init_fyers()
     if not fyers:
         return pd.DataFrame()
-    
     interval_map = {'1minute': '1', '5minute': '5', '15minute': '15', '30minute': '30', '60minute': '60'}
     end_date = datetime.now(IST)
     start_date = end_date - timedelta(days=days)
-    
+
     data = {
         'symbol': instrument_key,
         'resolution': interval_map.get(interval, '1'),
@@ -479,7 +462,7 @@ def fetch_candles(instrument_key, interval='1minute', days=90, retry_on_fail=Tru
         'range_to': end_date.strftime('%Y-%m-%d'),
         'cont_flag': '1'
     }
-    
+
     try:
         response = fyers.history(data=data)
         if response.get('s') != 'ok':
@@ -506,24 +489,21 @@ def fetch_candles(instrument_key, interval='1minute', days=90, retry_on_fail=Tru
 def resample_candles(df_1m, minutes):
     if len(df_1m) == 0:
         return pd.DataFrame()
-    
     df = df_1m.copy().set_index('datetime')
     r = df.resample(f'{minutes}min').agg(open=('open','first'), high=('high','max'), low=('low','min'), close=('close','last'), volume=('volume','sum')).dropna().reset_index()
     t = r['datetime'].dt.hour * 100 + r['datetime'].dt.minute
     return r[(t >= 915) & (t <= 1530)].reset_index(drop=True)
 
-# ========================================
-# SIGNAL GENERATION WITH ENTRY PRICE FIX
-# ========================================
-
+# =========================================
+# SIGNAL GENERATION - CORRECTED VERSION
+# =========================================
 def generate_signals():
     now = datetime.now(IST)
     signals = []
-    
     print(f"\n{'='*60}")
     print(f"SIGNAL SCAN: {now.strftime('%d %b %Y %H:%M:%S IST')}")
     print(f"{'='*60}\n")
-    
+
     for symbol, config in SCANNER_CONFIG.items():
         try:
             print(f"\nScanning {symbol}...")
@@ -554,112 +534,115 @@ def generate_signals():
                 
                 direction = 'BUY-LONG' if row['buy_signal'] else 'SELL-SHORT'
                 
-                # 🔥 FIX: Get LATEST available price instead of stale resampled close
-                # Use the LAST completed candle's close from 1-min data (more recent)
-                current_idx = df_1m.index.get_loc(row.name) if hasattr(row, 'name') else len(df_1m) - 1
+                # 🔥 FIX: Use the CLOSE of the signal candle itself
+                # Resampled candles label left-edge, but signal triggers at close.
+                # Using row['close'] eliminates lookback bias & matches execution reality.
+                entry = round(float(row['close']), 2)
+                entry_candle_time = row['datetime']
                 
-                # Find the actual latest tradable price
-                # Strategy: Use close of most recent completed candle before signal time
-                signal_time = pd.to_datetime(row['datetime'])
-                if signal_time.tzinfo is None:
-                    signal_time = IST.localize(signal_time)
+                # For accurate age calculation, consider candle close time
+                signal_close_time = pd.to_datetime(entry_candle_time) + timedelta(minutes=config['resample_minutes'])
+                if signal_close_time.tzinfo is None:
+                    signal_close_time = IST.localize(signal_close_time)
                 
-                # Get candles UP TO this signal time
-                df_before_signal = df_1m[df_1m['datetime'] <= signal_time]
+                # Calculate SL and targets based on THIS entry
+                if direction == 'BUY-LONG':
+                    sl = round(float(row['trail2']), 2)
+                    risk = entry - sl
+                    target_1 = round(entry + risk * 1.5, 2)
+                    target_2 = round(entry + risk * 2.5, 2)
+                else:
+                    sl = round(float(row['trail2']), 2)
+                    risk = sl - entry
+                    target_1 = round(entry - risk * 1.5, 2)
+                    target_2 = round(entry - risk * 2.5, 2)
                 
-                if len(df_before_signal) > 0:
-                    # Use the last completed candle's close as entry
-                    entry = round(float(df_before_signal.iloc[-1]['close']), 2)
-                    entry_candle_time = df_before_signal.iloc[-1]['datetime']
+                risk = abs(risk)
+                if risk == 0:
+                    continue
+                
+                reward = abs(target_2 - entry)
+                rr = round(reward / risk, 2)
+                
+                confidence = 0.5
+                bar_c = row.get('bar_color', 'neutral')
+                
+                if direction == 'BUY-LONG' and bar_c in ['green', 'blue']:
+                    confidence += 0.2 if bar_c == 'green' else 0.1
+                elif direction == 'SELL-SHORT' and bar_c in ['red', 'yellow']:
+                    confidence += 0.2 if bar_c == 'red' else 0.1
+                
+                if rr >= 2: confidence += 0.1
+                if rr >= 3: confidence += 0.1
+                
+                # 🌊 REGIME FILTER & CONFIDENCE BOOST
+                regime = row.get('regime', 'UNKNOWN')
+                if direction == 'BUY-LONG' and regime == 'BULL':
+                    confidence += 0.15  # Trend-aligned bonus
+                elif direction == 'SELL-SHORT' and regime == 'BEAR':
+                    confidence += 0.15
+                elif (direction == 'BUY-LONG' and regime == 'BEAR') or \
+                     (direction == 'SELL-SHORT' and regime == 'BULL'):
+                    confidence -= 0.25  # Heavy penalty for counter-trend
+                
+                confidence = min(max(confidence, 0.0), 0.95)
+                
+                if confidence >= 0.8: grade, score = 'A+', 95
+                elif confidence >= 0.7: grade, score = 'A', 85
+                elif confidence >= 0.6: grade, score = 'B', 70
+                else: grade, score = 'C', 55
+                
+                signal_dt = signal_close_time
+                
+                # 🔥 VALIDATION: Check how old this signal is
+                signal_age_minutes = (now - signal_dt).total_seconds() / 60
+                
+                # Get CURRENT market price for validation
+                current_market_price = float(df_1m.iloc[-1]['close'])
+                price_diff = abs(entry - current_market_price)
+                price_diff_pct = (price_diff / current_market_price) * 100
+                
+                signals.append({
+                    '_id': f"{symbol}_{signal_dt.strftime('%Y%m%d_%H%M')}",
+                    'symbol': symbol,
+                    'direction': direction,
+                    'model': 'ATR-TS',
+                    'entry': entry,
+                    'sl': sl,
+                    'target_1': target_1,
+                    'target_2': target_2,
+                    'target': target_2,
+                    'risk_reward': f"1:{rr}",
+                    'confidence': round(confidence, 2),
+                    'grade': grade,
+                    'grade_score': score,
+                    'scan_date': signal_dt.isoformat(),
+                    'scan_time': signal_dt.strftime('%H:%M'),
+                    'trail1': round(float(row['trail1']), 2),
+                    'trail2': round(float(row['trail2']), 2),
+                    'fast_atr': round(float(row['fast_atr']), 2),
+                    'slow_atr': round(float(row['slow_atr']), 2),
+                    'bar_color': bar_c,
+                    'regime': regime,
+                    'timeframe': f"{config['resample_minutes']}m",
+                    'lot_size': config['lot_size'],
+                    'scanner_type': 'atr_trailing',
+                    'outcome': 'pending',
                     
-                    # Calculate SL and targets based on THIS entry
-                    if direction == 'BUY-LONG':
-                        sl = round(float(row['trail2']), 2)
-                        risk = entry - sl
-                        target_1 = round(entry + risk * 1.5, 2)
-                        target_2 = round(entry + risk * 2.5, 2)
-                    else:
-                        sl = round(float(row['trail2']), 2)
-                        risk = sl - entry
-                        target_1 = round(entry - risk * 1.5, 2)
-                        target_2 = round(entry - risk * 2.5, 2)
-                    
-                    risk = abs(risk)
-                    if risk == 0:
-                        continue
-                    
-                    reward = abs(target_2 - entry)
-                    rr = round(reward / risk, 2)
-                    
-                    confidence = 0.5
-                    bar_c = row.get('bar_color', 'neutral')
-                    
-                    if direction == 'BUY-LONG' and bar_c in ['green', 'blue']:
-                        confidence += 0.2 if bar_c == 'green' else 0.1
-                    elif direction == 'SELL-SHORT' and bar_c in ['red', 'yellow']:
-                        confidence += 0.2 if bar_c == 'red' else 0.1
-                    
-                    if rr >= 2: confidence += 0.1
-                    if rr >= 3: confidence += 0.1
-                    confidence = min(confidence, 0.95)
-                    
-                    if confidence >= 0.8: grade, score = 'A+', 95
-                    elif confidence >= 0.7: grade, score = 'A', 85
-                    elif confidence >= 0.6: grade, score = 'B', 70
-                    else: grade, score = 'C', 55
-                    
-                    signal_dt = signal_time
-                    
-                    # 🔥 VALIDATION: Check how old this signal is
-                    signal_age_minutes = (now - signal_dt).total_seconds() / 60
-                    
-                    # Get CURRENT market price for validation
-                    current_market_price = float(df_1m.iloc[-1]['close'])
-                    price_diff = abs(entry - current_market_price)
-                    price_diff_pct = (price_diff / current_market_price) * 100
-                    
-                    signals.append({
-                        '_id': f"{symbol}_{signal_dt.strftime('%Y%m%d_%H%M')}",
-                        'symbol': symbol,
-                        'direction': direction,
-                        'model': 'ATR-TS',
-                        'entry': entry,
-                        'sl': sl,
-                        'target_1': target_1,
-                        'target_2': target_2,
-                        'target': target_2,
-                        'risk_reward': f"1:{rr}",
-                        'confidence': round(confidence, 2),
-                        'grade': grade,
-                        'grade_score': score,
-                        'scan_date': signal_dt.isoformat(),
-                        'scan_time': signal_dt.strftime('%H:%M'),
-                        'trail1': round(float(row['trail1']), 2),
-                        'trail2': round(float(row['trail2']), 2),
-                        'fast_atr': round(float(row['fast_atr']), 2),
-                        'slow_atr': round(float(row['slow_atr']), 2),
-                        'bar_color': bar_c,
-                        'regime': row.get('regime', 'UNKNOWN'),
-                        'timeframe': f"{config['resample_minutes']}m",
-                        'lot_size': config['lot_size'],
-                        'scanner_type': 'atr_trailing',
-                        'outcome': 'pending',
-                        
-                        # 🔥 NEW FIELDS FOR ENTRY PRICE VALIDATION
-                        'current_market_price': round(current_market_price, 2),
-                        'price_difference': round(price_diff, 2),
-                        'price_diff_pct': round(price_diff_pct, 2),
-                        'signal_age_minutes': round(signal_age_minutes, 1),
-                        'entry_candle_time': str(entry_candle_time.strftime('%H:%M:%S')),
-                        'validation_status': '✅ Valid' if price_diff_pct <= 1.0 else ('⚠️ Far from market' if price_diff_pct <= 2.0 else '❌ Stale signal'),
-                        'is_executable': price_diff_pct <= 1.5  # Allowable deviation
-                    })
-                    
-                    signal_count += 1
-                    
-                    status_icon = '✅' if price_diff_pct <= 1.5 else ('⚠️' if price_diff_pct <= 2.0 else '❌')
-                    print(f"  {direction} @ {signal_dt.strftime('%H:%M')} | Entry: {entry} | Current: {current_market_price} | Diff: {price_diff_pct:.2f}% [{status_icon}] Age: {signal_age_minutes:.0f}min")
-                }
+                    # 🔥 NEW FIELDS FOR ENTRY PRICE VALIDATION
+                    'current_market_price': round(current_market_price, 2),
+                    'price_difference': round(price_diff, 2),
+                    'price_diff_pct': round(price_diff_pct, 2),
+                    'signal_age_minutes': round(signal_age_minutes, 1),
+                    'entry_candle_time': str(entry_candle_time.strftime('%H:%M:%S')),
+                    'validation_status': '✅ Valid' if price_diff_pct <= 1.0 else ('⚠️ Far from market' if price_diff_pct <= 2.0 else '❌ Stale signal'),
+                    'is_executable': price_diff_pct <= 1.5  # Allowable deviation
+                })
+                
+                signal_count += 1
+                
+                status_icon = '✅' if price_diff_pct <= 1.5 else ('⚠️' if price_diff_pct <= 2.0 else '❌')
+                print(f"  {direction} @ {signal_dt.strftime('%H:%M')} | Entry: {entry} | Current: {current_market_price} | Diff: {price_diff_pct:.2f}% [{status_icon}] Age: {signal_age_minutes:.0f}min | Regime: {regime}")
             
             print(f"{symbol}: {signal_count} signal(s)")
             
@@ -667,9 +650,9 @@ def generate_signals():
             print(f"Error scanning {symbol}: {e}")
             import traceback
             traceback.print_exc()
-    
+
     signals.sort(key=lambda x: x.get('scan_date', ''), reverse=True)
-    
+
     # Merge with existing cache
     existing = scan_cache.get('signals', [])
     existing_ids = {s['_id'] for s in signals}
@@ -677,22 +660,21 @@ def generate_signals():
         if s['_id'] not in existing_ids and s.get('scan_date', '')[:10] == now.strftime('%Y-%m-%d'):
             signals.append(s)
     signals.sort(key=lambda x: x.get('scan_date', ''), reverse=True)
-    
+
     print(f"\n{'='*60}")
     print(f"TOTAL SIGNALS: {len(signals)}")
     print(f"{'='*60}\n")
-    
+
     # 🆕 AUTO-SAVE TO HISTORY
     save_signals_to_history(signals)
     opt_sigs = generate_option_signals(signals)
     save_options_to_history(opt_sigs)
-    
+
     return signals
 
-# ========================================
+# =========================================
 # OPTION SIGNAL GENERATION
-# ========================================
-
+# =========================================
 def generate_option_signals(futures_signals):
     results = []
     for sig in futures_signals:
@@ -700,7 +682,6 @@ def generate_option_signals(futures_signals):
         config = SCANNER_CONFIG.get(symbol, {})
         if not config:
             continue
-        
         direction = sig.get('direction', '')
         opt_type = 'CE' if direction == 'BUY-LONG' else 'PE'
         tp1 = float(sig.get('target_1', 0))
@@ -732,14 +713,13 @@ def generate_option_signals(futures_signals):
             'scanner_type': 'atr_trailing',
             'outcome': 'pending'
         })
-    
+
     print(f"\nGenerated {len(results)} option signal(s)")
     return results
 
-# ========================================
+# =========================================
 # 🆕 AUTO-SAVE TO HISTORY
-# ========================================
-
+# =========================================
 def save_signals_to_history(signals):
     """Persist signals to history JSON file"""
     try:
@@ -813,10 +793,9 @@ def save_options_to_history(options_signals):
     except Exception as e:
         print(f"⚠ Error saving options history: {e}")
 
-# ========================================
+# =========================================
 # TRADE EXECUTION ENGINE
-# ========================================
-
+# =========================================
 def execute_futures_trade(signal_data, quantity=1):
     global active_futures_trades
     try:
@@ -827,12 +806,12 @@ def execute_futures_trade(signal_data, quantity=1):
         symbol = signal_data.get('symbol', '')
         direction = signal_data.get('direction', '')
         side = 1 if direction == 'BUY-LONG' else -1
-        symbol_map = {'NIFTY50': 'NSE:NIFTY23FUT', 'BANKNIFTY': 'NSE:BANKNIFTY23FUT'}
+        symbol_map = {'NIFTY50': 'NSE:NIFTY25FUT', 'BANKNIFTY': 'NSE:BANKNIFTY25FUT'}
         fyers_symbol = symbol_map.get(symbol, f"NSE:{symbol}FUT")
         
         order_data = {"symbol": fyers_symbol, "qty": quantity, "type": 2, "side": side,
-                     "productType": "INTRADAY", "limitPrice": 0, "stopPrice": 0,
-                     "validity": "DAY", "disclosedQty": 0, "offlineOrder": False, "orderType": "MARKET"}
+                      "productType": "INTRADAY", "limitPrice": 0, "stopPrice": 0,
+                      "validity": "DAY", "disclosedQty": 0, "offlineOrder": False, "orderType": "MARKET"}
         
         response = fyers.place_order(data=order_data)
         if response.get('s') == 'ok':
@@ -878,8 +857,8 @@ def execute_options_trade(futures_trade, signal_data=None):
             fyers = init_fyers()
             if fyers:
                 order_data = {"symbol": opt_symbol, "qty": quantity, "type": 2, "side": 1,
-                             "productType": "INTRADAY", "limitPrice": 0, "stopPrice": 0,
-                             "validity": "DAY", "disclosedQty": 0, "offlineOrder": False, "orderType": "MARKET"}
+                              "productType": "INTRADAY", "limitPrice": 0, "stopPrice": 0,
+                              "validity": "DAY", "disclosedQty": 0, "offlineOrder": False, "orderType": "MARKET"}
                 response = fyers.place_order(data=order_data)
                 if response.get('s') == 'ok':
                     opt_trade = {
@@ -908,24 +887,23 @@ def close_linked_options(futures_trade_id, reason='TP/SL Hit'):
                 fyers = init_fyers()
                 if fyers:
                     order_data = {"symbol": opt['opt_symbol'], "qty": opt['quantity'], "type": 2, "side": -1,
-                                 "productType": "INTRADAY", "limitPrice": 0, "stopPrice": 0",
-                                 "validity": "DAY", "disclosedQty": 0, "offlineOrder": False, "orderType": "MARKET"}
+                                  "productType": "INTRADAY", "limitPrice": 0, "stopPrice": 0,
+                                  "validity": "DAY", "disclosedQty": 0, "offlineOrder": False, "orderType": "MARKET"}
                     resp = fyers.place_order(data=order_data)
                     if resp.get('s') == 'ok':
                         exit_price = opt['entry_price'] * 1.05
                         pnl = (exit_price - opt['entry_price']) * opt['quantity']
                         opt.update({'status': 'CLOSED', 'exit_price': round(exit_price,2),
-                                   'exit_time': datetime.now(IST).strftime('%d %b %H:%M'),
-                                   'pnl': round(pnl,2), 'close_reason': reason})
+                            'exit_time': datetime.now(IST).strftime('%d %b %H:%M'),
+                            'pnl': round(pnl,2), 'close_reason': reason})
                         save_json_file(OPTIONS_TRADES_FILE, active_options_trades)
             except:
                 pass
             break
 
-# ========================================
+# =========================================
 # POSITION MONITOR
-# ========================================
-
+# =========================================
 def monitor_positions():
     global active_futures_trades
     while True:
@@ -934,7 +912,6 @@ def monitor_positions():
                 for trade in active_futures_trades:
                     if trade.get('status') != 'OPEN':
                         continue
-                    
                     try:
                         symbol = trade.get('symbol', '')
                         config = SCANNER_CONFIG.get(symbol, {})
@@ -955,7 +932,7 @@ def monitor_positions():
                             if hit_target or hit_sl:
                                 reason = 'Target Hit' if hit_target else 'Stop Loss Hit'
                                 pnl = ((current_price - entry) if direction=='BUY-LONG' else (entry - current_price)) * trade.get('quantity',1)
-                                trade.update({'status':'CLOSED','exit_price':current_price,'exit_time':datetime.now(IST).strftime('%d %b %H:%M'),'pnl':round(pnl,2),'outcome':reason.lower().replace(' ',' '_')})
+                                trade.update({'status':'CLOSED','exit_price':current_price,'exit_time':datetime.now(IST).strftime('%d %b %H:%M'),'pnl':round(pnl,2),'outcome':reason.lower().replace(' ','_')})
                                 save_json_file(TRADES_FILE, active_futures_trades)
                                 close_linked_options(trade['id'], reason)
                     except:
@@ -964,10 +941,9 @@ def monitor_positions():
             pass
         time.sleep(10)
 
-# ========================================
+# =========================================
 # SCANNER STATUS
-# ========================================
-
+# =========================================
 def get_scanner_status():
     now = datetime.now(IST)
     time_val = now.hour * 100 + now.minute
@@ -978,10 +954,9 @@ def get_scanner_status():
     if 900 <= time_val < 915: return 'PRE_MARKET'
     return 'MARKET_CLOSED'
 
-# ========================================
+# =========================================
 # BACKGROUND SCANNER
-# ========================================
-
+# =========================================
 def background_scanner():
     while True:
         try:
@@ -1000,10 +975,9 @@ def background_scanner():
             pass
         time.sleep(30)
 
-# ========================================
+# =========================================
 # ROUTES - Serve HTML Files
-# ========================================
-
+# =========================================
 @app.route('/')
 def home():
     if os.path.exists('index.html'):
@@ -1015,12 +989,11 @@ def home():
 def history():
     if os.path.exists('history.html'):
         return send_file('history.html')
-    return "<html><body style='padding:50px;background:#0f1f3d;color:white'><h1 style='color:#ef4444'>History Not Found</h1><a href='/'>← Home</a></body></html>", 404
+    return "<html><body style='padding:50px;background:#0f1f3d;color:white'><h1 style='color:#ef4444'>History Not Found</h1><a href='/' >← Home</a></body></html>", 404
 
-# ========================================
+# =========================================
 # API ENDPOINTS
-# ========================================
-
+# =========================================
 @app.route('/api/status')
 def api_status():
     return jsonify({
@@ -1038,14 +1011,13 @@ def api_status():
 def api_signals():
     force = request.args.get('force', 'false').lower() == 'true'
     status = get_scanner_status()
-    
     if status == 'NO_TOKEN':
         return jsonify({'status': 'success', 'scanner_status': 'NO_TOKEN', 'signals': [], 'timestamp': datetime.now(IST).isoformat()})
-    
+
     cache_ttl = 30 if status == 'ACTIVE' else 60
     if not force and scan_cache.get('last_scan') and (datetime.now(IST) - scan_cache['last_scan']).total_seconds() < cache_ttl:
         return jsonify({'status': 'success', 'scanner_status': status, 'signals': scan_cache.get('signals', []), 'cached': True, 'timestamp': datetime.now(IST).isoformat()})
-    
+
     if scan_lock.acquire(blocking=False):
         try:
             signals = generate_signals() if status in ['ACTIVE','PRE_MARKET'] else scan_cache.get('signals', [])
@@ -1054,7 +1026,7 @@ def api_signals():
             return jsonify({'status': 'success', 'scanner_status': status, 'signals': signals, 'cached': False, 'timestamp': datetime.now(IST).isoformat()})
         finally:
             scan_lock.release()
-    
+
     return jsonify({'status': 'success', 'scanner_status': status, 'signals': scan_cache.get('signals', []), 'cached': True, 'timestamp': datetime.now(IST).isoformat()})
 
 @app.route('/api/signals/history')
@@ -1074,7 +1046,6 @@ def api_option_signals():
     now = datetime.now(IST)
     if options_cache.get('last_fetch') and (now - options_cache['last_fetch']).total_seconds() < 120:
         return jsonify({'status': 'success', 'option_signals': options_cache.get('signals', []), 'cached': True, 'timestamp': now.isoformat()})
-    
     futures = scan_cache.get('signals', [])
     opts = generate_option_signals(futures)
     options_cache['signals'] = opts
@@ -1105,11 +1076,10 @@ def api_track():
     data = request.json
     if not data or 'signals' not in data:
         return jsonify({'status': 'error', 'message': 'No signals'})
-    
     results = []
     for sig in data['signals']:
         symbol = sig.get('symbol', '')
-        config = SCANNER_CONFIG.get(symbol, '')
+        config = SCANNER_CONFIG.get(symbol, {})
         if not config:
             results.append({'_id': sig.get('_id'), 'status': 'pending', 'track_status': 'no_config'})
             continue
@@ -1163,26 +1133,24 @@ def api_track():
 
     return jsonify({'status': 'success', 'results': results})
 
-# ========================================
+# =========================================
 # STARTUP
-# ========================================
-
+# =========================================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    
     print(f"\n{'='*70}")
-    print(f"STRAKETRAIL SCANNER STARTING")
+    print(f"STRIKETRAIL SCANNER STARTING")
     print(f"Port: {port}")
     print(f"Token: {'✓' if token_data.get('access_token') else '✗'}")
     print(f"Loaded Trades: {len(active_futures_trades)} futures, {len(active_options_trades)} options")
     print(f"{'='*70}\n")
-    
+
     threading.Thread(target=background_scanner, daemon=True).start()
     print("✓ Background scanner started")
-    
+
     threading.Thread(target=monitor_positions, daemon=True).start()
     print("✓ Position monitor started")
-    
+
     def keep_alive():
         while True:
             try:
@@ -1191,9 +1159,9 @@ if __name__ == '__main__':
             except:
                 pass
             time.sleep(840)
-    
+
     threading.Thread(target=keep_alive, daemon=True).start()
     print("✓ Keep-alive pinger started\n")
-    
+
     print("Starting Flask server...")
     app.run(host='0.0.0.0', port=port, debug=False)
