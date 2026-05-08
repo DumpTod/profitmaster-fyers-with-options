@@ -458,20 +458,40 @@
         });
 
         async function loadSignals(forceRefresh = false) {
-            try {
-                const url = forceRefresh ? '/api/signals?force=true' : '/api/signals';
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    allSignals = data.signals || [];
-                    applyFilters();
-                    calculateStats();
-                }
-            } catch (error) {
-                console.error('Error loading signals:', error);
-            }
+    try {
+        // Load PERSISTENT history (not just cache!)
+        const response = await fetch('/api/signals/history');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            allSignals = data.signals || [];
+            applyFilters();
+            calculateStats();
+            
+            document.getElementById('connection-status').textContent = `Loaded ${data.total} signals ✓`;
+            document.getElementById('status-dot').classList.add('active');
         }
+    } catch (error) {
+        console.error('Error loading signals:', error);
+        document.getElementById('connection-status').textContent = 'Error loading';
+    }
+}
+
+async function loadOptions() {
+    try {
+        // Load PERSISTENT options history
+        const response = await fetch('/api/options-history');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            allOptions = data.options || [];
+            renderOptionsTable();
+            calculateOptionsStats();
+        }
+    } catch (error) {
+        console.error('Error loading options:', error);
+    }
+}
 
         async function loadOptions() {
             try {
