@@ -497,7 +497,7 @@ def resample_candles(df_1m, minutes):
     return r[(t >= 915) & (t <= 1530)].reset_index(drop=True)
 
 # =========================================
-# SIGNAL GENERATION - FULLY CORRECTED
+# SIGNAL GENERATION - FINAL CORRECTED VERSION
 # =========================================
 def generate_signals():
     now = datetime.now(IST)
@@ -532,9 +532,12 @@ def generate_signals():
                 
                 direction = 'BUY-LONG' if row['buy_signal'] else 'SELL-SHORT'
                 
-                # ✅ FIX: STRICTLY USE SIGNAL CANDLE CLOSE PRICE
+                # ✅ FINAL FIX: Use the signal candle's CLOSE price
+                # This is the ACTUAL price when the signal triggered
                 entry = round(float(row['close']), 2)
                 entry_candle_time = row['datetime']
+                
+                # Calculate when this 5-min candle actually closed
                 signal_close_time = pd.to_datetime(entry_candle_time) + timedelta(minutes=config['resample_minutes'])
                 if signal_close_time.tzinfo is None:
                     signal_close_time = IST.localize(signal_close_time)
@@ -630,7 +633,7 @@ def generate_signals():
                 })
                 
                 signal_count += 1
-                status_icon = '✅' if price_diff_pct <= 1.5 else ('⚠️' if price_diff_pct <= 2.0 else '')
+                status_icon = '✅' if price_diff_pct <= 1.5 else ('⚠️' if price_diff_pct <= 2.0 else '❌')
                 print(f"  {direction} @ {signal_dt.strftime('%H:%M')} | Entry: {entry} | SL: {sl} | TP1: {target_1} | TP2: {target_2} | Regime: {regime} | [{status_icon}]")
             
             print(f"{symbol}: {signal_count} signal(s)")
@@ -868,7 +871,7 @@ def execute_options_trade(futures_trade, signal_data=None):
                     print(f"✅ Options trade executed: {opt_symbol} @ {ltp}")
                     return opt_trade
                 else:
-                    print(f" Options order failed: {response.get('message')}")
+                    print(f"❌ Options order failed: {response.get('message')}")
     except Exception as e:
         print(f"❌ Options trade execution error: {e}")
     return None
@@ -1135,7 +1138,7 @@ if __name__ == '__main__':
     print(f"\n{'='*70}")
     print(f"STRIKETRAIL SCANNER STARTING")
     print(f"Port: {port}")
-    print(f"Token: {'✓' if token_data.get('access_token') else ''}")
+    print(f"Token: {'✓' if token_data.get('access_token') else '✗'}")
     print(f"Loaded Trades: {len(active_futures_trades)} futures, {len(active_options_trades)} options")
     print(f"{'='*70}\n")
 
