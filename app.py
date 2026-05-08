@@ -20,9 +20,9 @@ app.secret_key = os.environ.get('FLASK_SECRET', 'atr-scanner-secret-key-2024')
 # =========================================
 # FYERS CREDENTIALS (DO NOT MODIFY)
 # =========================================
-FYERS_APP_ID     = os.environ.get('API_KEY', '9M61XAZQSN-100')
-FYERS_SECRET_KEY = os.environ.get('API_SECRET', 'NYVEV0B7VP')
-FYERS_REDIRECT_URL = 'https://profitmaster-fyers-with-options.onrender.com/callback'
+FYERS_APP_ID     = os.environ.get('API_KEY', 'B64YVF96PK-100')
+FYERS_SECRET_KEY = os.environ.get('API_SECRET', 'QLMGPDNWC7')
+FYERS_REDIRECT_URL = 'https://trade.fyers.in/api-login/redirect-uri/index.html'
 
 # =========================================
 # SCANNER CONFIGURATION
@@ -351,6 +351,7 @@ def get_tp1_option(symbol, tp1_price, option_type, expiry_date):
         if not expiry_ts:
             return None, None, None
         
+        # Round TP1 to nearest valid strike step
         tp1_rounded = round_to_strike(tp1_price, step)
         resp = fyers.optionchain(data={'symbol': config.get('option_key', ''), 'strikecount': 20, 'timestamp': expiry_ts})
         
@@ -359,10 +360,11 @@ def get_tp1_option(symbol, tp1_price, option_type, expiry_date):
         
         chain = [r for r in resp['data'].get('optionsChain', []) if r.get('option_type') == option_type]
         if chain:
+            # Find closest strike to TP1
             best = min(chain, key=lambda r: abs(r['strike_price'] - tp1_rounded))
             return best['strike_price'], best.get('ltp', 0), best.get('symbol', '')
-    except:
-        pass
+    except Exception as e:
+        print(f"Option chain fetch error: {e}")
     return None, None, None
 
 # =========================================
@@ -495,7 +497,7 @@ def resample_candles(df_1m, minutes):
     return r[(t >= 915) & (t <= 1530)].reset_index(drop=True)
 
 # =========================================
-# SIGNAL GENERATION - CORRECTED VERSION
+# SIGNAL GENERATION - FULLY CORRECTED
 # =========================================
 def generate_signals():
     now = datetime.now(IST)
@@ -508,16 +510,12 @@ def generate_signals():
         try:
             print(f"\nScanning {symbol}...")
             
-            # Fetch 1-minute data
             df_1m = fetch_candles(config['instrument_key'], '1minute', days=90)
-            
             if len(df_1m) < 50:
                 print(f"Insufficient candles: {len(df_1m)}")
                 continue
             
-            # Resample to configured timeframe (5-min)
             df = resample_candles(df_1m, config['resample_minutes'])
-            
             if len(df) < max(config['fast_period'], config['slow_period']) + 10:
                 print(f"Insufficient resampled: {len(df)}")
                 continue
@@ -526,26 +524,22 @@ def generate_signals():
                                        config['slow_period'], config['slow_mult'])
             
             scan_df = df.tail(200).copy() if len(df) >= 200 else df.copy()
-            
             signal_count = 0
+            
             for _, row in scan_df.iterrows():
                 if not (row.get('buy_signal', False) or row.get('sell_signal', False)):
                     continue
                 
                 direction = 'BUY-LONG' if row['buy_signal'] else 'SELL-SHORT'
                 
-                # 🔥 FIX: Use the CLOSE of the signal candle itself
-                # Resampled candles label left-edge, but signal triggers at close.
-                # Using row['close'] eliminates lookback bias & matches execution reality.
+                # ✅ FIX: STRICTLY USE SIGNAL CANDLE CLOSE PRICE
                 entry = round(float(row['close']), 2)
                 entry_candle_time = row['datetime']
-                
-                # For accurate age calculation, consider candle close time
                 signal_close_time = pd.to_datetime(entry_candle_time) + timedelta(minutes=config['resample_minutes'])
                 if signal_close_time.tzinfo is None:
                     signal_close_time = IST.localize(signal_close_time)
                 
-                # Calculate SL and targets based on THIS entry
+                # Calculate SL & Targets based on EXACT entry
                 if direction == 'BUY-LONG':
                     sl = round(float(row['trail2']), 2)
                     risk = entry - sl
@@ -575,15 +569,15 @@ def generate_signals():
                 if rr >= 2: confidence += 0.1
                 if rr >= 3: confidence += 0.1
                 
-                # 🌊 REGIME FILTER & CONFIDENCE BOOST
+                # 🌊 REGIME CHECK & CONFIDENCE ADJUSTMENT
                 regime = row.get('regime', 'UNKNOWN')
                 if direction == 'BUY-LONG' and regime == 'BULL':
-                    confidence += 0.15  # Trend-aligned bonus
+                    confidence += 0.15
                 elif direction == 'SELL-SHORT' and regime == 'BEAR':
                     confidence += 0.15
                 elif (direction == 'BUY-LONG' and regime == 'BEAR') or \
                      (direction == 'SELL-SHORT' and regime == 'BULL'):
-                    confidence -= 0.25  # Heavy penalty for counter-trend
+                    confidence -= 0.25
                 
                 confidence = min(max(confidence, 0.0), 0.95)
                 
@@ -593,11 +587,7 @@ def generate_signals():
                 else: grade, score = 'C', 55
                 
                 signal_dt = signal_close_time
-                
-                # 🔥 VALIDATION: Check how old this signal is
                 signal_age_minutes = (now - signal_dt).total_seconds() / 60
-                
-                # Get CURRENT market price for validation
                 current_market_price = float(df_1m.iloc[-1]['close'])
                 price_diff = abs(entry - current_market_price)
                 price_diff_pct = (price_diff / current_market_price) * 100
@@ -612,6 +602,8 @@ def generate_signals():
                     'target_1': target_1,
                     'target_2': target_2,
                     'target': target_2,
+                    'tp1': target_1,  # Explicit for frontend
+                    'tp2': target_2,   # Explicit for frontend
                     'risk_reward': f"1:{rr}",
                     'confidence': round(confidence, 2),
                     'grade': grade,
@@ -628,21 +620,18 @@ def generate_signals():
                     'lot_size': config['lot_size'],
                     'scanner_type': 'atr_trailing',
                     'outcome': 'pending',
-                    
-                    # 🔥 NEW FIELDS FOR ENTRY PRICE VALIDATION
                     'current_market_price': round(current_market_price, 2),
                     'price_difference': round(price_diff, 2),
                     'price_diff_pct': round(price_diff_pct, 2),
                     'signal_age_minutes': round(signal_age_minutes, 1),
                     'entry_candle_time': str(entry_candle_time.strftime('%H:%M:%S')),
                     'validation_status': '✅ Valid' if price_diff_pct <= 1.0 else ('⚠️ Far from market' if price_diff_pct <= 2.0 else '❌ Stale signal'),
-                    'is_executable': price_diff_pct <= 1.5  # Allowable deviation
+                    'is_executable': price_diff_pct <= 1.5
                 })
                 
                 signal_count += 1
-                
-                status_icon = '✅' if price_diff_pct <= 1.5 else ('⚠️' if price_diff_pct <= 2.0 else '❌')
-                print(f"  {direction} @ {signal_dt.strftime('%H:%M')} | Entry: {entry} | Current: {current_market_price} | Diff: {price_diff_pct:.2f}% [{status_icon}] Age: {signal_age_minutes:.0f}min | Regime: {regime}")
+                status_icon = '✅' if price_diff_pct <= 1.5 else ('⚠️' if price_diff_pct <= 2.0 else '')
+                print(f"  {direction} @ {signal_dt.strftime('%H:%M')} | Entry: {entry} | SL: {sl} | TP1: {target_1} | TP2: {target_2} | Regime: {regime} | [{status_icon}]")
             
             print(f"{symbol}: {signal_count} signal(s)")
             
@@ -653,7 +642,6 @@ def generate_signals():
 
     signals.sort(key=lambda x: x.get('scan_date', ''), reverse=True)
 
-    # Merge with existing cache
     existing = scan_cache.get('signals', [])
     existing_ids = {s['_id'] for s in signals}
     for s in existing:
@@ -665,7 +653,6 @@ def generate_signals():
     print(f"TOTAL SIGNALS: {len(signals)}")
     print(f"{'='*60}\n")
 
-    # 🆕 AUTO-SAVE TO HISTORY
     save_signals_to_history(signals)
     opt_sigs = generate_option_signals(signals)
     save_options_to_history(opt_sigs)
@@ -673,7 +660,7 @@ def generate_signals():
     return signals
 
 # =========================================
-# OPTION SIGNAL GENERATION
+# OPTION SIGNAL GENERATION - FIXED
 # =========================================
 def generate_option_signals(futures_signals):
     results = []
@@ -682,11 +669,13 @@ def generate_option_signals(futures_signals):
         config = SCANNER_CONFIG.get(symbol, {})
         if not config:
             continue
+            
         direction = sig.get('direction', '')
         opt_type = 'CE' if direction == 'BUY-LONG' else 'PE'
         tp1 = float(sig.get('target_1', 0))
         lot = config['lot_size']
         expiry = get_active_expiry(symbol, datetime.now(IST).date())
+        
         strike, ltp, opt_symbol = get_tp1_option(symbol, tp1, opt_type, expiry)
         
         results.append({
@@ -698,6 +687,7 @@ def generate_option_signals(futures_signals):
             'action': 'BUY ' + opt_type,
             'spot': float(sig.get('entry', 0)),
             'tp1': tp1,
+            'tp2': float(sig.get('target_2', 0)),
             'strike': strike,
             'ltp': round(ltp, 2) if ltp else None,
             'opt_symbol': opt_symbol,
@@ -718,10 +708,9 @@ def generate_option_signals(futures_signals):
     return results
 
 # =========================================
-# 🆕 AUTO-SAVE TO HISTORY
+# AUTO-SAVE TO HISTORY
 # =========================================
 def save_signals_to_history(signals):
-    """Persist signals to history JSON file"""
     try:
         existing = load_json_file(SIGNALS_HISTORY_FILE)
         existing_ids = {s.get('_id') for s in existing}
@@ -762,7 +751,6 @@ def save_signals_to_history(signals):
         print(f"⚠ Error saving signals history: {e}")
 
 def save_options_to_history(options_signals):
-    """Persist option signals"""
     try:
         existing = load_json_file(OPTIONS_SIGNALS_HISTORY_FILE)
         existing_ids = {s.get('_id') for s in existing}
@@ -806,7 +794,8 @@ def execute_futures_trade(signal_data, quantity=1):
         symbol = signal_data.get('symbol', '')
         direction = signal_data.get('direction', '')
         side = 1 if direction == 'BUY-LONG' else -1
-        symbol_map = {'NIFTY50': 'NSE:NIFTY25FUT', 'BANKNIFTY': 'NSE:BANKNIFTY25FUT'}
+        # Note: Update these to current year contracts if needed
+        symbol_map = {'NIFTY50': 'NSE:NIFTY5025JUNFUT', 'BANKNIFTY': 'NSE:BANKNIFTY25JUNFUT'}
         fyers_symbol = symbol_map.get(symbol, f"NSE:{symbol}FUT")
         
         order_data = {"symbol": fyers_symbol, "qty": quantity, "type": 2, "side": side,
@@ -839,7 +828,7 @@ def execute_futures_trade(signal_data, quantity=1):
             execute_options_trade(trade, signal_data)
             return trade
     except Exception as e:
-        print(f"❌ Execute trade error: {e}")
+        print(f"❌ Execute futures trade error: {e}")
     return None
 
 def execute_options_trade(futures_trade, signal_data=None):
@@ -851,6 +840,7 @@ def execute_options_trade(futures_trade, signal_data=None):
         quantity = futures_trade.get('quantity', 1)
         opt_type = 'CE' if direction == 'BUY-LONG' else 'PE'
         expiry = get_active_expiry(symbol, datetime.now(IST).date())
+        
         strike, ltp, opt_symbol = get_tp1_option(symbol, target_1, opt_type, expiry)
         
         if opt_symbol and ltp:
@@ -869,14 +859,18 @@ def execute_options_trade(futures_trade, signal_data=None):
                         'entry_price': round(float(ltp), 2), 'status': 'OPEN', 'pnl': 0,
                         'order_id': response.get('id'),
                         'entry_time': datetime.now(IST).strftime('%d %b %H:%M'),
-                        'tp1': target_1, 'sl': float(futures_trade.get('sl', 0)),
+                        'tp1': target_1, 'tp2': float(futures_trade.get('target_2', 0)),
+                        'sl': float(futures_trade.get('sl', 0)),
                         'outcome': 'pending'
                     }
                     active_options_trades.append(opt_trade)
                     save_json_file(OPTIONS_TRADES_FILE, active_options_trades)
+                    print(f"✅ Options trade executed: {opt_symbol} @ {ltp}")
                     return opt_trade
+                else:
+                    print(f" Options order failed: {response.get('message')}")
     except Exception as e:
-        print(f"❌ Options trade error: {e}")
+        print(f"❌ Options trade execution error: {e}")
     return None
 
 def close_linked_options(futures_trade_id, reason='TP/SL Hit'):
@@ -1079,7 +1073,7 @@ def api_track():
     results = []
     for sig in data['signals']:
         symbol = sig.get('symbol', '')
-        config = SCANNER_CONFIG.get(symbol, {})
+        config = SCANNER_CONFIG.get(symbol, '')
         if not config:
             results.append({'_id': sig.get('_id'), 'status': 'pending', 'track_status': 'no_config'})
             continue
@@ -1141,7 +1135,7 @@ if __name__ == '__main__':
     print(f"\n{'='*70}")
     print(f"STRIKETRAIL SCANNER STARTING")
     print(f"Port: {port}")
-    print(f"Token: {'✓' if token_data.get('access_token') else '✗'}")
+    print(f"Token: {'✓' if token_data.get('access_token') else ''}")
     print(f"Loaded Trades: {len(active_futures_trades)} futures, {len(active_options_trades)} options")
     print(f"{'='*70}\n")
 
