@@ -9,8 +9,8 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
-            color: #333;
+            background: #f8f9fa;
+            color: #212529;
         }
         
         /* Header */
@@ -32,11 +32,7 @@
             gap: 10px;
         }
         
-        .header p {
-            font-size: 13px;
-            opacity: 0.9;
-            margin-top: 3px;
-        }
+        .header p { font-size: 13px; opacity: 0.9; margin-top: 3px; }
         
         .header-buttons {
             display: flex;
@@ -44,7 +40,7 @@
         }
         
         .btn {
-            padding: 8px 18px;
+            padding: 9px 20px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -59,31 +55,63 @@
         .btn-clear { background: #dc2626; color: white; }
         .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         
-        /* Filters Row */
-        .filters-row {
+        /* Section Toggle */
+        .section-toggle {
             background: white;
-            padding: 20px 30px;
+            padding: 15px 30px;
+            border-bottom: 2px solid #e5e7eb;
             display: flex;
             gap: 15px;
+        }
+        
+        .toggle-btn {
+            padding: 12px 28px;
+            background: #f3f4f6;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .toggle-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        
+        .toggle-btn.options-active {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border-color: #d97706;
+        }
+        
+        /* Filters */
+        .filters-row {
+            background: white;
+            padding: 18px 30px;
+            display: flex;
+            gap: 12px;
             align-items: center;
             border-bottom: 1px solid #e5e7eb;
             flex-wrap: wrap;
         }
         
         select {
-            padding: 8px 15px;
+            padding: 9px 16px;
             border: 2px solid #e5e7eb;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
             background: white;
-            min-width: 140px;
+            min-width: 150px;
         }
         
         select:focus { outline: none; border-color: #2563eb; }
         
         .btn-reset {
-            padding: 8px 20px;
+            padding: 9px 22px;
             background: #f3f4f6;
             border: 2px solid #e5e7eb;
             border-radius: 6px;
@@ -92,12 +120,10 @@
             font-size: 14px;
         }
         
-        .btn-reset:hover { background: #e5e7eb; }
-        
         /* Stats Cards */
         .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
             padding: 25px 30px;
             background: white;
@@ -106,8 +132,8 @@
         
         .stat-card {
             background: white;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 18px;
+            border-radius: 10px;
             border-left: 4px solid #2563eb;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
@@ -118,17 +144,19 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
         
         .stat-value {
-            font-size: 24px;
+            font-size: 26px;
             font-weight: 700;
             color: #1f2937;
         }
         
         .stat-value.green { color: #10b981; }
         .stat-value.red { color: #ef4444; }
+        .stat-value.orange { color: #f59e0b; }
+        .stat-value.purple { color: #8b5cf6; }
         
         .stat-card:nth-child(1) { border-left-color: #2563eb; }
         .stat-card:nth-child(2) { border-left-color: #10b981; }
@@ -153,6 +181,7 @@
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-collapse: collapse;
         }
         
         thead {
@@ -161,18 +190,19 @@
         }
         
         th {
-            padding: 14px 16px;
+            padding: 16px 18px;
             text-align: left;
             font-weight: 600;
-            font-size: 12px;
+            font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         
         td {
-            padding: 14px 16px;
+            padding: 16px 18px;
             border-bottom: 1px solid #f3f4f6;
             font-size: 14px;
+            vertical-align: top;
         }
         
         tbody tr:hover { background: #f9fafb; }
@@ -182,87 +212,95 @@
         .text-blue { color: #2563eb; }
         .text-purple { color: #8b5cf6; }
         
-        /* Select Dropdown in Table */
-        .outcome-select {
-            padding: 6px 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 6px;
-            font-size: 13px;
-            cursor: pointer;
-            background: white;
+        /* Signal Card in Table */
+        .signal-row {
+            transition: all 0.2s;
         }
         
-        .btn-exit {
-            padding: 6px 16px;
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
+        .signal-row:hover {
+            background: #f0fdf4 !important;
+            transform: scale(1.01);
         }
         
-        .btn-exit:hover { background: #e5e7eb; }
+        .symbol-cell {
+            font-weight: 700;
+            font-size: 15px;
+            color: #111827;
+        }
         
-        .btn-delete {
-            background: none;
-            border: none;
+        .direction-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-buy {
+            background: #10b981;
+            color: white;
+        }
+        
+        .badge-sell {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .metric-label {
+            font-size: 10px;
             color: #9ca3af;
-            cursor: pointer;
-            font-size: 18px;
-            padding: 0 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-right: 4px;
         }
         
-        .btn-delete:hover { color: #ef4444; }
+        .grade-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 12px;
+        }
+        
+        .regime-badge {
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 11px;
+        }
+        
+        .regime-bull { background: #d1fae5; color: #065f46; }
+        .regime-bear { background: #fee2e2; color: #991b1b; }
+        
+        .conf-text { color: #059669; font-weight: 600; }
+        
+        .warning-icon {
+            color: #f59e0b;
+            cursor: help;
+            font-size: 16px;
+        }
         
         /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
             color: #9ca3af;
-        }
-        
-        /* Options Section Toggle */
-        .section-toggle {
-            background: white;
-            padding: 15px 30px;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            gap: 20px;
-        }
-        
-        .toggle-btn {
-            padding: 10px 24px;
-            background: #f3f4f6;
-            border: 2px solid transparent;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .toggle-btn.active {
-            background: #2563eb;
-            color: white;
-        }
-        
-        .toggle-btn.options-active {
-            background: #f59e0b;
-            color: white;
         }
         
         .hidden { display: none !important; }
         
         @media (max-width: 1024px) {
-            .stats-row { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+            .stats-row { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+            table { font-size: 12px; }
+            th, td { padding: 12px 10px; }
         }
         
         @media (max-width: 768px) {
             .header { flex-direction: column; gap: 15px; text-align: center; }
             .filters-row { flex-direction: column; align-items: stretch; }
-            table { font-size: 12px; }
-            th, td { padding: 10px 8px; }
+            th, td { padding: 10px 8px; font-size: 11px; }
         }
     </style>
 </head>
@@ -320,7 +358,7 @@
         <!-- Stats Cards -->
         <div class="stats-row">
             <div class="stat-card">
-                <div class="stat-label">Total</div>
+                <div class="stat-label">Total Signals</div>
                 <div class="stat-value" id="stat-total">0</div>
             </div>
             <div class="stat-card">
@@ -329,7 +367,7 @@
             </div>
             <div class="stat-card">
                 <div class="label">Stops Hit</div>
-                <div class="stat-value red" id="stat-stops">0</div>
+                <div class="stat-value red" id="st-stops">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Win Rate</div>
@@ -337,15 +375,15 @@
             </div>
             <div class="stat-card">
                 <div class="stat-label">Pending</div>
-                <div class="stat-value" id="stat-pending" style="color:#f59e0b;">0</div>
+                <div class="stat-value orange" id="stat-pending">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Open</div>
+                <div class="stat-label">Open Trades</div>
                 <div class="stat-value" id="stat-open">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Avg Score</div>
-                <div class="stat-value text-purple" id="stat-score">0</div>
+                <div class="stat-value purple" id="stat-score">0</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Total P&L</div>
@@ -360,24 +398,23 @@
                     <tr>
                         <th>Date</th>
                         <th>Symbol</th>
-                        <th>Dir</th>
-                        <th>Grade</th>
-                        <th>Score</th>
+                        <th>Direction</th>
                         <th>Entry</th>
                         <th>SL</th>
-                        <th>T1</th>
-                        <th>T2</th>
+                        <th>Target 1</th>
+                        <th>Target 2</th>
                         <th>R:R</th>
-                        <th>Conf</th>
-                        <th>Outcome</th>
-                        <th>Exit ₹</th>
-                        <th>P&L</th>
-                        <th></th>
+                        <th>Regime</th>
+                        <th>Bar</th>
+                        <th>Trail Info</th>
+                        <th>Grade</th>
+                        <th>Confidence</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody id="signals-tbody">
                     <tr>
-                        <td colspan="15" class="empty-state">
+                        <td colspan="16" class="empty-state">
                             <h2 style="font-size:48px;margin-bottom:20px;">📭</h2>
                             <p>Loading trade history...</p>
                         </td>
@@ -389,7 +426,6 @@
 
     <!-- OPTIONS SECTION -->
     <div id="options-section" class="hidden">
-        <!-- Options Stats -->
         <div class="stats-row">
             <div class="stat-card">
                 <div class="stat-label">Total Options</div>
@@ -417,7 +453,6 @@
             </div>
         </div>
 
-        <!-- Options Table -->
         <div class="content">
             <table>
                 <thead>
@@ -426,12 +461,12 @@
                         <th>Symbol</th>
                         <th>Type</th>
                         <th>Strike</th>
-                        <th>Entry Price</th>
-                        <th>Exit Price</th>
-                        <th>P&L</th>
+                        <th>LTP</th>
+                        <th>Expiry</th>
+                        <th>Days Left</th>
+                        <th>Risk</th>
+                        <th>Grade</th>
                         <th>Status</th>
-                        <th>Close Reason</th>
-                        <th>Linked To</th>
                     </tr>
                 </thead>
                 <tbody id="options-tbody">
@@ -455,56 +490,41 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadSignals();
             loadOptions();
+            
+            // Auto-refresh every 60 seconds
+            setInterval(loadSignals, 60000);
         });
 
         async function loadSignals(forceRefresh = false) {
-    try {
-        // Load PERSISTENT history (not just cache!)
-        const response = await fetch('/api/signals/history');
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            allSignals = data.signals || [];
-            applyFilters();
-            calculateStats();
-            
-            document.getElementById('connection-status').textContent = `Loaded ${data.total} signals ✓`;
-            document.getElementById('status-dot').classList.add('active');
-        }
-    } catch (error) {
-        console.error('Error loading signals:', error);
-        document.getElementById('connection-status').textContent = 'Error loading';
-    }
-}
-
-async function loadOptions() {
-    try {
-        // Load PERSISTENT options history
-        const response = await fetch('/api/options-history');
-        const data = await response.json();
-        
-        if (data.status === 'success') {
-            allOptions = data.options || [];
-            renderOptionsTable();
-            calculateOptionsStats();
-        }
-    } catch (error) {
-        console.error('Error loading options:', error);
-    }
-}
-
-        async function loadOptions() {
             try {
-                const response = await fetch('/api/option-signals');
+                // Load PERSISTENT history from new endpoint
+                const response = await fetch('/api/signals/history');
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    allOptions = data.option_signals || [];
+                    allSignals = data.signals || [];
+                    applyFilters();
+                    calculateStats();
+                    
+                    document.getElementById('connection-status').textContent = `Loaded ${data.total} signals ✓`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadOptions() {
+            try:
+                const response = await fetch('/api/options-history');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    allOptions = data.options || [];
                     renderOptionsTable();
                     calculateOptionsStats();
                 }
             } catch (error) {
-                console.error('Error loading options:', error);
+                console.error('Options error:', error);
             }
         }
 
@@ -534,42 +554,52 @@ async function loadOptions() {
             renderTable();
         }
 
-        // Render Futures Table
+        // Render Futures Table - PROFESSIONAL STYLE
         function renderTable() {
             const tbody = document.getElementById('signals-tbody');
 
             if (!filteredSignals.length) {
-                tbody.innerHTML = `<tr><td colspan="15" class="empty-state"><h2 style="font-size:48px;margin-bottom:20px;">📭</h2><p>No signals found</p></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="16" class="empty-state"><h2 style="font-size:48px;">📭</h2><p>No signals found</p></td></tr>`;
                 return;
             }
 
             tbody.innerHTML = filteredSignals.map(s => {
                 const dirClass = s.direction === 'BUY-LONG' ? 'text-green' : 'text-red';
                 const dirText = s.direction === 'BUY-LONG' ? 'BUY' : 'SELL';
+                const badgeClass = s.direction === 'BUY-LONG' ? 'badge-buy' : 'badge-sell';
+                const regimeClass = s.regime === 'BULL' ? 'regime-bull' : (s.regime === 'BEAR' ? 'regime-bear' : '');
+                
+                const warning = s.validation_warning ? 
+                    '<span class="warning-icon" title="' + s.validation_warning + '">⚠️</span>' : '';
                 
                 return `
-                    <tr>
+                    <tr class="signal-row">
                         <td>${s.scan_date ? new Date(s.scan_date).toLocaleDateString('en-IN', {day:'numeric', month:'short'}) + ' ' + (s.scan_time || '') : '-'}</td>
-                        <td><strong>${s.symbol}</strong></td>
-                        <td class="${dirClass}">${dirText}</td>
-                        <td><strong>${s.grade || '-'}</strong></td>
-                        <td>${s.grade_score || '-'}</td>
+                        <td class="symbol-cell">${s.symbol}${warning}</td>
+                        <td><span class="direction-badge ${badgeClass}">${dirText}</span></td>
                         <td class="text-green">${s.entry || '-'}</td>
                         <td class="text-red">${s.sl || '-'}</td>
                         <td class="text-blue">${s.target_1 || '-'}</td>
-                        <td class="text-blue">${s.target_2 || '-'}</td>
+                        <td class="text-blue">${s.target_2 || s.target || '-'}</td>
                         <td>${s.risk_reward || '-'}</td>
-                        <td>${s.confidence ? (s.confidence * 100).toFixed(0) + '%' : '-'}</td>
+                        <td><span class="regime-badge ${regimeClass}">${s.regime || '-'}</span></td>
+                        <td style="font-size:12px;color:#6b7280;">${s.bar_color || '-'}</td>
+                        <td style="font-size:11px;">
+                            <div class="metric-label">Fast</div>
+                            <div style="color:#374151;font-weight:600;">${s.trail1 || '-'}</div>
+                            <div class="metric-label" style="margin-top:3px;">Slow</div>
+                            <div style="color:#374151;font-weight:600;">${s.trail2 || '-'}</div>
+                        </td>
+                        <td><span class="grade-badge">${s.grade || '-'} (${s.grade_score || '-'})</span></td>
+                        <td class="conf-text">${((s.confidence || 0.8) * 100).toFixed(0)}%</td>
                         <td>
-                            <select class="outcome-select" onchange="updateOutcome('${s._id}', this.value)">
-                                <option value="pending" ${s.outcome === 'pending' ? 'selected' : ''}>pending</option>
-                                <option value="target_hit" ${s.outcome === 'target_hit' ? 'selected' : ''}>target hit</option>
-                                <option value="stop_hit" ${s.outcome === 'stop_hit' ? 'selected' : ''}>stop hit</option>
+                            <select class="outcome-select" style="padding:6px 12px;border:2px solid #e5e7eb;border-radius:6px;font-size:13px;cursor:pointer;" onchange="updateOutcome('${s._id}', this.value)">
+                                <option value="pending" ${s.outcome === 'pending' ? 'selected' : ''}>⏳ Pending</option>
+                                <option value="target_hit" ${s.outcome === 'target_hit' ? 'selected' : ''}>🎯 Target Hit</option>
+                                <option value="stop_hit" ${s.outcome === 'stop_hit' ? 'selected' : ''}>❌ Stop Hit</option>
+                                <option value="manual_close" ${s.outcome === 'manual_close' ? 'selected' : ''}>🔒 Manual Close</option>
                             </select>
                         </td>
-                        <td><input type="number" step="0.01" placeholder="Exit" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;width:80px;"></td>
-                        <td class="${(s.pnl || 0) >= 0 ? 'text-green' : 'text-red'}">${s.pnl ? '₹' + s.pnl.toLocaleString() : ''}</td>
-                        <td><button class="btn-delete" title="Delete">×</button></td>
                     </tr>
                 `;
             }).join('');
@@ -580,26 +610,27 @@ async function loadOptions() {
             const tbody = document.getElementById('options-tbody');
 
             if (!allOptions.length) {
-                tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><h2 style="font-size:48px;margin-bottom:20px;">🎯</h2><p>No options trades recorded</p></td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><h2 style="font-size:48px;">🎯</h2><p>No options trades recorded</p></td></tr>`;
                 return;
             }
 
             tbody.innerHTML = allOptions.map(o => {
-                const pnlClass = (o.pnl || 0) >= 0 ? 'text-green' : 'text-red';
-                const badgeClass = o.opt_type === 'CE' ? 'ce-badge' : 'pe-badge';
+                const typeBadge = o.opt_type === 'CE' ? 
+                    '<span style="background:#10b981;color:white;padding:3px 10px;border-radius:4px;font-weight:700;font-size:11px;">CE</span>' :
+                    '<span style="background:#ef4444;color:white;padding:3px 10px;border-radius:4px;font-weight:700;font-size:11px;">PE</span>';
                 
                 return `
                     <tr>
                         <td>${o.scan_date ? new Date(o.scan_date).toLocaleDateString('en-IN', {day:'numeric', month:'short'}) + ' ' + (o.scan_time || '') : '-'}</td>
-                        <td><strong>${o.symbol}</strong></td>
-                        <td><span style="background:${o.opt_type==='CE'?'#10b981':'#ef4444'};color:${o.opt_type==='CE'?'white':'white'};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;">${o.opt_type}</span></td>
+                        <td class="symbol-cell">${o.symbol}</td>
+                        <td>${typeBadge}</td>
                         <td>₹${o.strike?.toLocaleString()}</td>
                         <td class="text-green">₹${o.ltp || '-'}</td>
-                        <td>-</td>
-                        <td class="${pnlClass}">-</td>
+                        <td>${o.expiry || '-'}</td>
+                        <td>${o.days_to_expiry || '-'}d</td>
+                        <td>₹${o.max_risk?.toLocaleString() || '-'}</td>
+                        <td><span class="grade-badge">${o.grade || '-'}</span></td>
                         <td>Pending</td>
-                        <td>-</td>
-                        <td style="font-size:12px;color:#6b7280;">${o.futures_id?.substring(0,14)||'-'}</td>
                     </tr>
                 `;
             }).join('');
@@ -617,14 +648,21 @@ async function loadOptions() {
 
             document.getElementById('stat-total').textContent = total;
             document.getElementById('stat-targets').textContent = targets;
-            document.getElementById('stat-stops').textContent = stops;
+            document.getElementById('st-stops').textContent = stops;
             document.getElementById('stat-winrate').textContent = winrate + '%';
             document.getElementById('stat-pending').textContent = pending;
             document.getElementById('stat-open').textContent = pending;
             document.getElementById('stat-score').textContent = avgScore;
             
-            // Calculate approximate P&L (would need actual exit prices)
-            document.getElementById('stat-pnl').textContent = '₹--';
+            // Calculate approximate P&L from closed trades
+            let totalPnL = 0;
+            allSignals.filter(s => s.outcome && s.outcome !== 'pending').forEach(s => {
+                if (s.pnl) totalPnL += parseFloat(s.pnl);
+            });
+            
+            const pnlEl = document.getElementById('stat-pnl');
+            pnlEl.textContent = '₹' + Math.round(totalPnL).toLocaleString();
+            pnlEl.className = 'stat-value ' + (totalPnL >= 0 ? 'green' : 'red');
         }
 
         // Calculate Options Stats
@@ -632,21 +670,16 @@ async function loadOptions() {
             const total = allOptions.length;
             const ce = allOptions.filter(o => o.opt_type === 'CE').length;
             const pe = allOptions.filter(o => o.opt_type === 'PE').length;
-            const active = total; // All are pending until executed
-            const closed = 0;
 
             document.getElementById('opt-stat-total').textContent = total;
             document.getElementById('opt-stat-ce').textContent = ce;
             document.getElementById('opt-stat-pe').textContent = pe;
-            document.getElementById('opt-stat-active').textContent = active;
-            document.getElementById('opt-stat-closed').textContent = closed;
-            document.getElementById('opt-stat-pnl').textContent = '₹--';
+            document.getElementById('opt-stat-active').textContent = total; // All pending for now
+            document.getElementById('opt-stat-closed').textContent = 0;
         }
 
         async function updateOutcome(id, outcome) {
-            // This would normally call an API to update the signal
             console.log(`Update ${id} to ${outcome}`);
-            // For now, just update locally
             const signal = allSignals.find(s => s._id === id);
             if (signal) {
                 signal.outcome = outcome;
@@ -662,31 +695,32 @@ async function loadOptions() {
 
         async function clearHistory() {
             if (!confirm('⚠️ Clear ALL displayed signals? This cannot be undone!')) return;
-            // This would call an API endpoint
             alert('History cleared (demo mode)');
         }
 
         function exportCSV() {
-            const headers = ['Date','Symbol','Direction','Grade','Score','Entry','SL','T1','T2','R:R','Confidence','Outcome'];
+            const headers = ['Date','Symbol','Direction','Entry','SL','Target1','Target2','R:R','Regime','Bar Color','Grade','Confidence','Outcome'];
             const csv = [headers.join(',')];
+            
             allSignals.forEach(s => {
                 csv.push([
                     s.scan_date || '',
                     s.symbol,
                     s.direction,
-                    s.grade,
-                    s.grade_score,
                     s.entry,
                     s.sl,
                     s.target_1,
                     s.target_2,
                     s.risk_reward,
-                    s.confidence,
-                    s.outcome
+                    s.regime,
+                    s.bar_color,
+                    s.grade,
+                    ((s.confidence || 0.8) * 100).toFixed(0) + '%',
+                    s.outcome || 'pending'
                 ].join(','));
             });
             
-            downloadFile(csv.join('\n'), 'striketrail-history.csv');
+            downloadFile(csv.join('\n'), 'striketrail-history-' + new Date().toISOString().split('T')[0] + '.csv');
         }
 
         function downloadFile(content, filename) {
