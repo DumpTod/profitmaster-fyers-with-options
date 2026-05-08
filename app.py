@@ -523,7 +523,11 @@ def generate_signals():
                 print(f"Insufficient candles: {len(df_1m)}")
                 continue
             
-            df = resample_candles(df_1m, config['resample_minutes'])
+           # Use 1-min candles for more accurate entries
+            if config['resample_minutes'] <= 1:
+                df = df_1m.copy()
+                else:
+    df = resample_candles(df_1m, config['resample_minutes'])
             if len(df) < max(config['fast_period'], config['slow_period']) + 10:
                 print(f"Insufficient resampled: {len(df)}")
                 continue
