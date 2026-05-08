@@ -497,7 +497,7 @@ def resample_candles(df_1m, minutes):
     return r[(t >= 915) & (t <= 1530)].reset_index(drop=True)
 
 # =========================================
-# SIGNAL GENERATION - FINAL CORRECTED VERSION
+# SIGNAL GENERATION - FULLY CORRECTED WITH NEXT 1-MIN ENTRY
 # =========================================
 def generate_signals():
     now = datetime.now(IST)
@@ -532,16 +532,20 @@ def generate_signals():
                 
                 direction = 'BUY-LONG' if row['buy_signal'] else 'SELL-SHORT'
                 
-                # ✅ FINAL FIX: Use the signal candle's CLOSE price
-                # This is the ACTUAL price when the signal triggered
-                entry = round(float(row['close']), 2)
-                entry_candle_time = row['datetime']
+                # ✅ FINAL FIX: Entry = Close of the NEXT 1-minute candle after signal
+                # 5m candle labeled T covers T to T+4:59. Closes at T+5:00.
+                # Next 1m candle starts at T+5:00, closes at T+6:00. Its label is T+5:00.
+                entry_1m_label = row['datetime'] + timedelta(minutes=config['resample_minutes'])
                 
-                # Calculate when this 5-min candle actually closed
-                signal_close_time = pd.to_datetime(entry_candle_time) + timedelta(minutes=config['resample_minutes'])
-                if signal_close_time.tzinfo is None:
-                    signal_close_time = IST.localize(signal_close_time)
-                
+                match = df_1m[df_1m['datetime'] == entry_1m_label]
+                if not match.empty:
+                    entry = round(float(match.iloc[0]['close']), 2)
+                    entry_candle_time = entry_1m_label
+                else:
+                    # Fallback if data gap
+                    entry = round(float(row['close']), 2)
+                    entry_candle_time = row['datetime']
+
                 # Calculate SL & Targets based on EXACT entry
                 if direction == 'BUY-LONG':
                     sl = round(float(row['trail2']), 2)
@@ -589,7 +593,7 @@ def generate_signals():
                 elif confidence >= 0.6: grade, score = 'B', 70
                 else: grade, score = 'C', 55
                 
-                signal_dt = signal_close_time
+                signal_dt = entry_candle_time
                 signal_age_minutes = (now - signal_dt).total_seconds() / 60
                 current_market_price = float(df_1m.iloc[-1]['close'])
                 price_diff = abs(entry - current_market_price)
