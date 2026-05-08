@@ -4,126 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StrikeTrail</title>
-    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
-            color: #333;
+            background: #f8f9fa;
+            color: #212529;
         }
         
-        /* Header - Navy Blue */
+        /* Header */
         .header {
             background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
             color: white;
-            padding: 15px 30px;
+            padding: 12px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
         
-        .logo h1 {
-            font-size: 24px;
+        .header-left h1 {
+            font-size: 20px;
             font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .logo p {
-            font-size: 13px;
-            opacity: 0.9;
-            margin-top: 3px;
-        }
-        
-        .header-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .btn {
-            padding: 8px 18px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .btn-scanning {
-            background: #10b981;
-            color: white;
-        }
-        
-        .btn-history {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-        
-        .btn-token {
-            background: #f59e0b;
-            color: white;
-        }
-        
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        /* Status Bar */
-        .status-bar {
-            background: white;
-            padding: 12px 30px;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .status-left {
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
+        .header-left p {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 7px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        
+        .btn-scanning { background: #10b981; color: white; }
+        .btn-history { background: rgba(255,255,255,0.2); color: white; }
+        .btn-token { background: #f59e0b; color: white; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        
+        /* Status Bar */
+        .status-bar {
+            background: white;
+            padding: 10px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        .status-left { display: flex; align-items: center; gap: 6px; }
         .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #9ca3af;
-        }
-        
-        .status-dot.active {
             background: #10b981;
+            animation: pulse 2s infinite;
         }
         
-        .status-right {
-            display: flex;
-            gap: 20px;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
+        
+        .status-right { display: flex; gap: 18px; }
         
         /* Tabs */
         .tabs-container {
             background: white;
-            padding: 0 30px;
+            padding: 0 24px;
             border-bottom: 2px solid #e5e7eb;
-        }
-        
-        .tabs {
             display: flex;
-            gap: 30px;
+            gap: 0;
         }
         
         .tab {
-            padding: 15px 5px;
+            padding: 14px 20px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 14px;
             color: #6b7280;
             border-bottom: 3px solid transparent;
             transition: all 0.3s;
@@ -134,27 +110,26 @@
             border-bottom-color: #2563eb;
         }
         
-        .tab:hover {
-            color: #2563eb;
-        }
+        .tab:hover { color: #2563eb; }
         
         /* Filters */
         .filters {
             background: white;
-            padding: 20px 30px;
+            padding: 16px 24px;
             display: flex;
-            gap: 12px;
+            gap: 10px;
+            border-bottom: 1px solid #f3f4f6;
             flex-wrap: wrap;
         }
         
         .filter-btn {
-            padding: 8px 16px;
+            padding: 7px 16px;
             border: 2px solid #e5e7eb;
             background: white;
             border-radius: 20px;
             cursor: pointer;
             font-weight: 500;
-            font-size: 14px;
+            font-size: 13px;
             transition: all 0.3s;
         }
         
@@ -164,70 +139,194 @@
             border-color: #2563eb;
         }
         
-        .filter-btn.buy.active {
-            background: #10b981;
-            border-color: #10b981;
-        }
-        
-        .filter-btn.sell.active {
-            background: #ef4444;
-            border-color: #ef4444;
-        }
+        .filter-btn.buy.active { background: #10b981; border-color: #10b981; }
+        .filter-btn.sell.active { background: #ef4444; border-color: #ef4444; }
         
         /* Main Content */
         .main-content {
-            padding: 30px;
+            padding: 24px;
             max-width: 1600px;
             margin: 0 auto;
         }
         
-        /* Signal Cards */
+        /* Signal Cards Grid */
         .signals-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 25px;
+            gap: 20px;
         }
         
+        /* Individual Signal Card - PROFESSIONAL STYLE */
         .signal-card {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
         }
         
         .card-header {
-            padding: 18px 24px;
-            font-weight: 700;
-            font-size: 16px;
+            padding: 16px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-weight: 700;
+            font-size: 16px;
         }
         
         .card-header.buy {
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
             color: #065f46;
+            border-bottom: 2px solid #a7f3d0;
         }
         
         .card-header.sell {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
             color: #991b1b;
+            border-bottom: 2px solid #fecaca;
         }
         
-        .count-badge {
-            background: rgba(0,0,0,0.1);
+        .card-badge {
+            background: rgba(0,0,0,0.08);
             padding: 4px 12px;
             border-radius: 12px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
         }
         
         .card-body {
-            padding: 30px;
-            min-height: 300px;
-            display: flex;
+            padding: 0;
+        }
+        
+        /* Signal Item - Detailed Row */
+        .signal-item {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.2s;
+        }
+        
+        .signal-item:hover {
+            background: #f9fafb;
+        }
+        
+        .signal-item:last-child {
+            border-bottom: none;
+        }
+        
+        .signal-main {
+            display: grid;
+            grid-template-columns: 140px 1fr 90px 90px 90px 70px;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+        
+        .symbol-name {
+            font-weight: 800;
+            font-size: 15px;
+            color: #111827;
+            letter-spacing: -0.3px;
+        }
+        
+        .symbol-meta {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        
+        .metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #9ca3af;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        
+        .metric-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: #111827;
+        }
+        
+        .entry-value { color: #059669; }
+        .sl-value { color: #dc2626; }
+        .target-value { color: #2563eb; }
+        .rr-value { color: #7c3aed; }
+        
+        .action-badge {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            padding: 5px 14px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-buy {
+            background: #10b981;
+            color: white;
+        }
+        
+        .badge-sell {
+            background: #ef4444;
+            color: white;
+        }
+        
+        /* Signal Details Row */
+        .signal-details {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            padding-top: 12px;
+            border-top: 1px dashed #e5e7eb;
+            font-size: 11px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .detail-label {
+            color: #9ca3af;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .detail-value {
+            font-weight: 600;
+            color: #374151;
+            font-size: 12px;
+        }
+        
+        .detail-value.bull { color: #059669; }
+        .detail-value.bear { color: #dc2626; }
+        .detail-value.neutral { color: #6b7280; }
+        
+        .grade-badge {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 11px;
+        }
+        
+        .conf-badge {
+            color: #059669;
+            font-weight: 600;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
             color: #9ca3af;
         }
         
@@ -238,121 +337,61 @@
             border-top-color: #2563eb;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px;
         }
         
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
         
-        .signal-list {
-            width: 100%;
-        }
-        
-        .signal-item {
-            padding: 12px 16px;
-            border-bottom: 1px solid #f3f4f6;
-            display: grid;
-            grid-template-columns: 100px 1fr 80px 80px 80px 70px;
-            gap: 12px;
-            align-items: center;
-            font-size: 13px;
-        }
-        
-        .signal-item:last-child {
-            border-bottom: none;
-        }
-        
-        .signal-symbol {
-            font-weight: 700;
-            color: #1f2937;
-        }
-        
-        .signal-entry {
-            color: #059669;
+        /* Warning Badge */
+        .warning-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 11px;
             font-weight: 600;
-        }
-        
-        .signal-sl {
-            color: #dc2626;
-        }
-        
-        .signal-target {
-            color: #2563eb;
-        }
-        
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 25px;
-            color: #9ca3af;
-            font-size: 13px;
-            background: white;
-            margin-top: 40px;
-        }
-        
-        .footer a {
-            color: #2563eb;
-            text-decoration: none;
-            margin: 0 5px;
+            display: inline-block;
+            margin-left: 8px;
         }
         
         /* Responsive */
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
             .signals-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .signal-main,
+            .signal-details {
+                grid-template-columns: repeat(3, 1fr);
             }
         }
         
         @media (max-width: 768px) {
             .header {
                 flex-direction: column;
-                gap: 15px;
+                gap: 12px;
                 text-align: center;
             }
             
-            .filters {
-                justify-content: center;
-            }
-            
-            .signal-item {
+            .signal-main,
+            .signal-details {
                 grid-template-columns: 1fr;
-                gap: 6px;
+                gap: 8px;
             }
-        }
-
-        /* Options specific */
-        .options-section {
-            margin-top: 30px;
-        }
-        
-        .ce-badge {
-            background: #10b981;
-            color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        
-        .pe-badge {
-            background: #ef4444;
-            color: white;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
         }
     </style>
 </head>
 <body>
     <!-- Header -->
     <div class="header">
-        <div class="logo">
+        <div class="header-left">
             <h1>⚡ StrikeTrail</h1>
             <p>ATR Trailing Stop Scanner — NIFTY & BANKNIFTY</p>
         </div>
-        <div class="header-buttons">
-            <button class="btn btn-scanning" id="scanning-btn">⏱ Scanning...</button>
+        <div class="header-right">
+            <button class="btn btn-scanning" id="scanning-btn" onclick="forceScan()">⏱ Scanning...</button>
             <button class="btn btn-history" onclick="window.location.href='/history'">📋 History</button>
             <button class="btn btn-token" onclick="window.location.href='/set-token'">🔑 Token</button>
         </div>
@@ -361,22 +400,22 @@
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-left">
-            <span class="status-dot" id="status-dot"></span>
+            <span class="status-dot"></span>
             <span id="connection-status">Connecting...</span>
         </div>
         <div class="status-right">
             <span>⏱ <span id="last-update">---:--</span></span>
-            <span>📊 Total: <span id="total-signals">---</span></span>
-            <span>Buy: <span id="buy-count">0</span></span>
-            <span>Sell: <span id="sell-count">0</span></span>
+            <span>📊 Total: <strong id="total-signals">-</strong></span>
+            <span>Buy: <strong id="buy-count">0</strong></span>
+            <span>Sell: <strong id="sell-count">0</strong></span>
         </div>
     </div>
 
     <!-- Tabs -->
     <div class="tabs-container">
         <div class="tabs">
-            <div class="tab active" id="futures-tab" onclick="switchTab('futures')">📋 Futures Signals</div>
-            <div class="tab" id="options-tab" onclick="switchTab('options')">🎯 Options</div>
+            <div class="tab active" onclick="switchTab('futures')">📋 Futures Signals</div>
+            <div class="tab" onclick="switchTab('options')">🎯 Options</div>
         </div>
     </div>
 
@@ -399,12 +438,12 @@
                 <div class="signal-card">
                     <div class="card-header buy">
                         <span>📈 Intraday Buy</span>
-                        <span class="count-badge" id="buy-count-badge">0</span>
+                        <span class="card-badge" id="buy-count-badge">0</span>
                     </div>
                     <div class="card-body" id="buy-signals-body">
-                        <div style="text-align:center;">
+                        <div class="empty-state">
                             <div class="loading-spinner"></div>
-                            <p style="margin-top:15px;">Loading...</p>
+                            <p>Loading signals...</p>
                         </div>
                     </div>
                 </div>
@@ -413,12 +452,12 @@
                 <div class="signal-card">
                     <div class="card-header sell">
                         <span>📉 Intraday Sell</span>
-                        <span class="count-badge" id="sell-count-badge">0</span>
+                        <span class="card-badge" id="sell-count-badge">0</span>
                     </div>
                     <div class="card-body" id="sell-signals-body">
-                        <div style="text-align:center;">
+                        <div class="empty-state">
                             <div class="loading-spinner"></div>
-                            <p style="margin-top:15px;">Loading...</p>
+                            <p>Loading signals...</p>
                         </div>
                     </div>
                 </div>
@@ -428,31 +467,23 @@
         <!-- Options Section -->
         <div id="options-section" style="display:none;">
             <div class="signals-grid">
-                <!-- Call Options Card -->
                 <div class="signal-card">
                     <div class="card-header buy">
                         <span>🎯 Call Options (CE)</span>
-                        <span class="count-badge" id="ce-count-badge">0</span>
+                        <span class="card-badge" id="ce-count-badge">0</span>
                     </div>
                     <div class="card-body" id="ce-options-body">
-                        <div style="text-align:center;">
-                            <div class="loading-spinner"></div>
-                            <p style="margin-top:15px;">Loading...</p>
-                        </div>
+                        <div class="empty-state"><p>No call options</p></div>
                     </div>
                 </div>
 
-                <!-- Put Options Card -->
                 <div class="signal-card">
                     <div class="card-header sell">
                         <span>🎯 Put Options (PE)</span>
-                        <span class="count-badge" id="pe-count-badge">0</span>
+                        <span class="card-badge" id="pe-count-badge">0</span>
                     </div>
                     <div class="card-body" id="pe-options-body">
-                        <div style="text-align:center;">
-                            <div class="loading-spinner"></div>
-                            <p style="margin-top:15px;">Loading...</p>
-                        </div>
+                        <div class="empty-state"><p>No put options</p></div>
                     </div>
                 </div>
             </div>
@@ -460,12 +491,12 @@
     </div>
 
     <!-- Footer -->
-    <div class="footer">
+    <div style="text-align:center;padding:25px;color:#9ca3af;font-size:13px;background:white;margin-top:30px;">
         StrikeTrail v2.0 — ATR Trailing Stop Scanner · 
         <strong>NIFTY</strong> (15m: Fast 3/1.0, Slow 25/2.0) · 
         <strong>BANKNIFTY</strong> (5m: Fast 5/0.7, Slow 20/3.5) · 
-        <a href="/history">History</a> · 
-        <a href="#">Token</a>
+        <a href="/history" style="color:#2563eb;text-decoration:none;">History</a> · 
+        <a href="#" style="color:#2563eb;text-decoration:none;">Token</a>
     </div>
 
     <script>
@@ -474,20 +505,36 @@
         let currentFilter = 'all';
         let currentTab = 'futures';
 
-        // Initialize on page load
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             fetchSignals();
             fetchOptionSignals();
             updateStatus();
             
-            // Auto-refresh every 30 seconds
-            setInterval(fetchSignals, 30000);
-            setInterval(fetchOptionSignals, 60000);
+            // Auto-refresh every 45 seconds
+            setInterval(fetchSignals, 45000);
+            setInterval(fetchOptionSignals, 90000);
         });
 
-        async function fetchSignals() {
+        async function forceScan() {
+            const btn = document.getElementById('scanning-btn');
+            btn.textContent = '⏳ Scanning...';
+            btn.style.background = '#f59e0b';
+            
+            await fetchSignals(true);
+            await fetchOptionSignals(true);
+            
+            btn.textContent = '✅ Scanned!';
+            setTimeout(() => {
+                btn.textContent = '⏱ Scanning...';
+                btn.style.background = '#10b981';
+            }, 3000);
+        }
+
+        async function fetchSignals(forceRefresh = false) {
             try {
-                const response = await fetch('/api/signals?force=false');
+                const url = forceRefresh ? '/api/signals?force=true' : '/api/signals';
+                const response = await fetch(url);
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -496,14 +543,13 @@
                     updateStats();
                     
                     // Update status
-                    document.getElementById('connection-status').textContent = 'Connected ✓';
-                    document.getElementById('status-dot').classList.add('active');
-                    document.getElementById('last-update').textContent = new Date().toLocaleTimeString('en-US', {hour12: false});
+                    document.getElementById('connection-status').textContent = '✓ Connected';
+                    document.getElementById('last-update').textContent = new Date().toLocaleTimeString('en-US', {hour12:false});
                     
                     const status = data.scanner_status || 'UNKNOWN';
                     const btn = document.getElementById('scanning-btn');
                     if (status === 'ACTIVE') {
-                        btn.textContent = '⏱ Scanning...';
+                        btn.textContent = '✅ Scanner Active';
                         btn.style.background = '#10b981';
                     } else if (status === 'NO_TOKEN') {
                         btn.textContent = '⚠ No Token';
@@ -514,8 +560,8 @@
                     }
                 }
             } catch (error) {
-                console.error('Error fetching signals:', error);
-                document.getElementById('connection-status').textContent = 'Error connecting';
+                console.error('Error:', error);
+                document.getElementById('connection-status').textContent = 'Error';
             }
         }
 
@@ -529,48 +575,24 @@
                     renderOptionSignals();
                 }
             } catch (error) {
-                console.error('Error fetching option signals:', error);
-            }
-        }
-
-        async function updateStatus() {
-            try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
-                
-                if (data.token_set) {
-                    document.getElementById('connection-status').textContent = 'Token Active ✓';
-                    document.getElementById('status-dot').classList.add('active');
-                }
-            } catch (error) {
-                console.error('Error fetching status:', error);
+                console.error('Options error:', error);
             }
         }
 
         function switchTab(tab) {
             currentTab = tab;
-            
-            // Update tab styles
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            if (tab === 'futures') {
-                document.getElementById('futures-tab').classList.add('active');
-            } else {
-                document.getElementById('options-tab').classList.add('active');
-            }
+            event.target.classList.add('active');
             
-            // Show/hide sections
             document.getElementById('futures-section').style.display = tab === 'futures' ? 'block' : 'none';
             document.getElementById('options-section').style.display = tab === 'options' ? 'block' : 'none';
         }
 
         function setFilter(filter, btn) {
             currentFilter = filter;
-            
-            // Update button styles
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // Re-render signals
             renderFuturesSignals();
             renderOptionSignals();
         }
@@ -579,13 +601,10 @@
             // Filter signals
             let filtered = signals.filter(s => {
                 if (currentFilter === 'all') return true;
-                if (currentFilter === 'BUY-LONG' || currentFilter === 'SELL-SHORT') {
-                    return s.direction === currentFilter;
-                }
-                return s.symbol.includes(currentFilter.replace('BANKNIFTY', 'BANKNIFTY').replace('NIFTY', 'NIFTY50'));
+                if (currentFilter === 'BUY-LONG' || currentFilter === 'SELL-SHORT') return s.direction === currentFilter;
+                return s.symbol.includes(currentFilter);
             });
 
-            // Separate buy/sell
             const buys = filtered.filter(s => s.direction === 'BUY-LONG');
             const sells = filtered.filter(s => s.direction === 'SELL-SHORT');
 
@@ -593,105 +612,170 @@
             document.getElementById('buy-count-badge').textContent = buys.length;
             document.getElementById('sell-count-badge').textContent = sells.length;
 
-            // Render buy signals
+            // Render Buy Signals - PROFESSIONAL STYLE
             const buyBody = document.getElementById('buy-signals-body');
             if (buys.length === 0) {
-                buyBody.innerHTML = '<p style="color:#9ca3af; text-align:center;">No buy signals</p>';
+                buyBody.innerHTML = '<div class="empty-state"><p style="font-size:48px;margin-bottom:15px;">📭</p><p>No buy signals</p></div>';
             } else {
-                buyBody.innerHTML = `
-                    <div class="signal-list">
-                        ${buys.map(s => `
-                            <div class="signal-item">
-                                <div class="signal-symbol">${s.symbol}</div>
-                                <div><strong>${s.scan_time || ''}</strong></div>
-                                <div class="signal-entry">${s.entry}</div>
-                                <div class="signal-sl">${s.sl}</div>
-                                <div class="signal-target">${s.target_1}</div>
-                                <div style="font-size:11px;color:#6b7280;">${s.grade || ''}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+                buyBody.innerHTML = `<div>${buys.map(s => createSignalCard(s, 'buy')).join('')}</div>`;
             }
 
-            // Render sell signals
+            // Render Sell Signals
             const sellBody = document.getElementById('sell-signals-body');
             if (sells.length === 0) {
-                sellBody.innerHTML = '<p style="color:#9ca3af; text-align:center;">No sell signals</p>';
+                sellBody.innerHTML = '<div class="empty-state"><p style="font-size:48px;margin-bottom:15px;">📭</p><p>No sell signals</p></div>';
             } else {
-                sellBody.innerHTML = `
-                    <div class="signal-list">
-                        ${sells.map(s => `
-                            <div class="signal-item">
-                                <div class="signal-symbol">${s.symbol}</div>
-                                <div><strong>${s.scan_time || ''}</strong></div>
-                                <div class="signal-entry">${s.entry}</div>
-                                <div class="signal-sl">${s.sl}</div>
-                                <div class="signal-target">${s.target_1}</div>
-                                <div style="font-size:11px;color:#6b7280;">${s.grade || ''}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+                sellBody.innerHTML = `<div>${sells.map(s => createSignalCard(s, 'sell')).join('')}</div>`;
             }
+        }
+
+        function createSignalCard(s, type) {
+            const warning = s.validation_warning ? `<span class="warning-badge">${s.validation_warning}</span>` : '';
+            const regimeClass = s.regime === 'BULL' ? 'bull' : (s.regime === 'BEAR' ? 'bear' : 'neutral');
+            
+            return `
+                <div class="signal-item">
+                    <div class="signal-main">
+                        <div>
+                            <div class="symbol-name">${s.symbol}</div>
+                            <div class="symbol-meta">ATR-TS • ${s.timeframe || '5m'}</div>
+                        </div>
+                        
+                        <div>
+                            <div class="metric-label">ENTRY</div>
+                            <div class="metric-value entry-value">${s.entry}${warning}</div>
+                            <div style="font-size:10px;color:#9ca3af;margin-top:2px;">Tgt2: ${s.target_2 || s.target}</div>
+                        </div>
+                        
+                        <div>
+                            <div class="metric-label">STOP LOSS</div>
+                            <div class="metric-value sl-value">${s.sl}</div>
+                        </div>
+                        
+                        <div>
+                            <div class="metric-label">TARGET 1</div>
+                            <div class="metric-value target-value">${s.target_1}</div>
+                        </div>
+                        
+                        <div>
+                            <div class="metric-label">R:R</div>
+                            <div class="metric-value rr-value">${s.risk_reward || '1:2.5'}</div>
+                        </div>
+                        
+                        <div style="text-align:right;">
+                            <span class="action-badge ${type === 'buy' ? 'badge-buy' : 'badge-sell'}">${type === 'buy' ? 'BUY' : 'SELL'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="signal-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Fast Trail</span>
+                            <span class="detail-value">${s.trail1 || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Slow Trail</span>
+                            <span class="detail-value">${s.trail2 || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Bar</span>
+                            <span class="detail-value neutral">${s.bar_color || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">REGIME</span>
+                            <span class="detail-value ${regimeClass}">${s.regime || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Grade</span>
+                            <span class="grade-badge">${s.grade || 'A'} (${s.grade_score || 85})</span>
+                        </div>
+                        <div class="detail-item" style="text-align:right;">
+                            <span class="detail-label">Conf</span>
+                            <span class="conf-badge">${((s.confidence || 0.8) * 100).toFixed(0)}%</span>
+                            <div style="color:#9ca3af;font-size:10px;margin-top:2px;">${s.scan_time || ''}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function renderOptionSignals() {
             // Filter options
             let filtered = optionsSignals.filter(o => {
                 if (currentFilter === 'all') return true;
-                if (currentFilter === 'CE' || currentFilter === 'PE') {
-                    return o.opt_type === currentFilter;
-                }
+                if (currentFilter === 'CE' || currentFilter === 'PE') return o.opt_type === currentFilter;
                 return o.symbol.includes(currentFilter);
             });
 
-            // Separate CE/PE
             const ceOpts = filtered.filter(o => o.opt_type === 'CE');
             const peOpts = filtered.filter(o => o.opt_type === 'PE');
 
-            // Update counts
             document.getElementById('ce-count-badge').textContent = ceOpts.length;
             document.getElementById('pe-count-badge').textContent = peOpts.length;
 
-            // Render CE options
+            // Render CE Options
             const ceBody = document.getElementById('ce-options-body');
             if (ceOpts.length === 0) {
-                ceBody.innerHTML = '<p style="color:#9ca3af; text-align:center;">No call options</p>';
+                ceBody.innerHTML = '<div class="empty-state"><p>No call options</p></div>';
             } else {
-                ceBody.innerHTML = `
-                    <div class="signal-list">
-                        ${ceOpts.map(o => `
-                            <div class="signal-item">
-                                <div class="signal-symbol">${o.symbol}</div>
-                                <div><span class="ce-badge">CE</span></div>
-                                <div>₹${o.strike?.toLocaleString()}</div>
-                                <div class="signal-entry">₹${o.ltp || '-'}</div>
-                                <div style="font-size:11px;color:#6b7280;">${o.days_to_expiry || '-'}d</div>
+                ceBody.innerHTML = ceOpts.map(o => `
+                    <div class="signal-item">
+                        <div class="signal-main">
+                            <div>
+                                <div class="symbol-name">${o.symbol}</div>
+                                <div class="symbol-meta">Strike: ₹${o.strike?.toLocaleString()}</div>
                             </div>
-                        `).join('')}
+                            <div>
+                                <div class="metric-label">LTP</div>
+                                <div class="metric-value entry-value">₹${o.ltp || '-'}</div>
+                            </div>
+                            <div>
+                                <div class="metric-label">Type</div>
+                                <div style="background:#10b981;color:white;padding:3px 10px;border-radius:4px;font-weight:700;font-size:11px;display:inline-block;">CE</div>
+                            </div>
+                            <div>
+                                <div class="metric-label">Expiry</div>
+                                <div class="metric-value">${o.expiry || '-'} (${o.days_to_expiry || '-'}d)</div>
+                            </div>
+                            <div>
+                                <div class="metric-label">Risk</div>
+                                <div class="metric-value sl-value">₹${o.max_risk?.toLocaleString() || '-'}</div>
+                            </div>
+                        </div>
                     </div>
-                `;
+                `).join('');
             }
 
-            // Render PE options
+            // Render PE Options
             const peBody = document.getElementById('pe-options-body');
             if (peOpts.length === 0) {
-                peBody.innerHTML = '<p style="color:#9ca3af; text-align:center;">No put options</p>';
+                peBody.innerHTML = '<div class="empty-state"><p>No put options</p></div>';
             } else {
-                peBody.innerHTML = `
-                    <div class="signal-list">
-                        ${peOpts.map(o => `
-                            <div class="signal-item">
-                                <div class="signal-symbol">${o.symbol}</div>
-                                <div><span class="pe-badge">PE</span></div>
-                                <div>₹${o.strike?.toLocaleString()}</div>
-                                <div class="signal-entry">₹${o.ltp || '-'}</div>
-                                <div style="font-size:11px;color:#6b7280;">${o.days_to_expiry || '-'}d</div>
+                peBody.innerHTML = peOpts.map(o => `
+                    <div class="signal-item">
+                        <div class="signal-main">
+                            <div>
+                                <div class="symbol-name">${o.symbol}</div>
+                                <div class="symbol-meta">Strike: ₹${o.strike?.toLocaleString()}</div>
                             </div>
-                        `).join('')}
+                            <div>
+                                <div class="metric-label">LTP</div>
+                                <div class="metric-value entry-value">₹${o.ltp || '-'}</div>
+                            </div>
+                            <div>
+                                <div class="metric-label">Type</div>
+                                <div style="background:#ef4444;color:white;padding:3px 10px;border-radius:4px;font-weight:700;font-size:11px;display:inline-block;">PE</div>
+                            </div>
+                            <div>
+                                <div class="metric-label">Expiry</div>
+                                <div class="metric-value">${o.expiry || '-'} (${o.days_to_expiry || '-'}d)</div>
+                            </div>
+                            <div>
+                                <div class="metric-label">Risk</div>
+                                <div class="metric-value sl-value">₹${o.max_risk?.toLocaleString() || '-'}</div>
+                            </div>
+                        </div>
                     </div>
-                `;
+                `).join('');
             }
         }
 
