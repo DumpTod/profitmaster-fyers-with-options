@@ -497,6 +497,167 @@ def resample_candles(df_1m, minutes):
     return r[(t >= 915) & (t <= 1530)].reset_index(drop=True)
 
 # =========================================
+# MILITARY-GRADE REGIME CHECK
+# =========================================
+def fetch_market_depth(instrument_key):
+    """Fetch order book depth for microstructure analysis"""
+    fyers = init_fyers()
+    if not fyers:
+        return None
+    try:
+        data = {'symbol': instrument_key, 'ohlcv_flag': '1'}
+        response = fyers.depth(data=data)
+        if response.get('s') == 'ok':
+            return response.get('d', {}).get(instrument_key, {})
+    except:
+        pass
+    return None
+
+def calculate_order_book_pressure(depth_data):
+    """Calculate bid-ask imbalance from market depth"""
+    if not depth_data:
+        return 1.0  # Neutral if no data
+    
+    bids = depth_data.get('bids', [])
+    asks = depth_data.get('ask', [])
+    
+    if not bids or not asks:
+        return 1.0
+    
+    # Top 3 levels weighted volume
+    bid_strength = sum(bid.get('volume', 0) for bid in bids[:3])
+    ask_strength = sum(ask.get('volume', 0) for ask in asks[:3])
+    
+    if ask_strength == 0:
+        return 2.0  # Max bullish
+    
+    imbalance_ratio = bid_strength / ask_strength
+    return imbalance_ratio
+
+def calculate_volatility_regime(df, window=20, baseline_window=100):
+    """Calculate volatility regime using realized vol"""
+    if len(df) < baseline_window:
+        return 1.0  # Neutral if insufficient data
+    
+    returns = df['close'].pct_change()
+    current_rv = returns.rolling(window).std().iloc[-1] * 100
+    baseline_rv = returns.rolling(baseline_window).std().iloc[-1] * 100
+    
+    if baseline_rv == 0:
+        return 1.0
+    
+    vol_ratio = current_rv / baseline_rv
+    return vol_ratio
+
+def check_multitimeframe_alignment(instrument_key, direction, ema_period=9):
+    """Check 5m/15m/60m EMA alignment for trend coherence"""
+    try:
+        # Fetch 60min data (need at least 60 days for proper baseline)
+        df_60m = fetch_candles(instrument_key, '60minute', days=60)
+        df_15m = fetch_candles(instrument_key, '15minute', days=30)
+        df_5m = fetch_candles(instrument_key, '5minute', days=15)
+        
+        if len(df_60m) < ema_period or len(df_15m) < ema_period or len(df_5m) < ema_period:
+            return False  # Block if insufficient data
+        
+        # Calculate EMAs
+        ema_60 = df_60m['close'].ewm(span=ema_period).mean().iloc[-1]
+        ema_15 = df_15m['close'].ewm(span=ema_period).mean().iloc[-1]
+        ema_5 = df_5m['close'].ewm(span=ema_period).mean().iloc[-1]
+        
+        price_60 = df_60m['close'].iloc[-1]
+        price_15 = df_15m['close'].iloc[-1]
+        price_5 = df_5m['close'].iloc[-1]
+        
+        # Alignment check
+        signal_60 = 1 if price_60 > ema_60 else -1
+        signal_15 = 1 if price_15 > ema_15 else -1
+        signal_5 = 1 if price_5 > ema_5 else -1
+        
+        if direction == 'BUY-LONG':
+            # Need 5m + 15m bullish, AND 60m not bearish
+            return (signal_5 > 0 and signal_15 > 0) or (signal_5 > 0 and signal_15 > 0 and signal_60 > 0)
+        else:  # SELL-SHORT
+            # Need 5m + 15m bearish, AND 60m not bullish
+            return (signal_5 < 0 and signal_15 < 0) or (signal_5 < 0 and signal_15 < 0 and signal_60 < 0)
+            
+    except:
+        return False  # Block on error
+
+def check_volume_confirmation(df, lookback=20):
+    """Verify current volume vs rolling average"""
+    if len(df) < lookback + 1:
+        return False
+    
+    current_vol = df['volume'].iloc[-1]
+    avg_vol = df['volume'].rolling(lookback).mean().iloc[-2]  # Exclude current bar
+    
+    if avg_vol == 0:
+        return False
+    
+    return current_vol > (1.3 * avg_vol)
+
+def military_grade_regime_check(symbol, config, df_5m, df_1m, direction):
+    """
+    MILITARY-GRADE 4-LAYER REGIME FILTER
+    Returns: (passed: bool, regime_data: dict)
+    """
+    regime_data = {
+        'passed': False,
+        'order_book_pressure': None,
+        'vol_regime': None,
+        'mtf_aligned': None,
+        'volume_confirmed': None,
+        'block_reason': None
+    }
+    
+    # LAYER 1: Order Book Pressure (Microstructure)
+    depth_data = fetch_market_depth(config['instrument_key'])
+    imbalance_ratio = calculate_order_book_pressure(depth_data)
+    regime_data['order_book_pressure'] = round(imbalance_ratio, 2)
+    
+    if direction == 'BUY-LONG':
+        if imbalance_ratio < 1.15:
+            regime_data['block_reason'] = f"OB_PRESSURE: {imbalance_ratio:.2f} < 1.15 (need buyer stack)"
+            return False, regime_data
+    else:  # SELL-SHORT
+        if imbalance_ratio > 0.85:
+            regime_data['block_reason'] = f"OB_PRESSURE: {imbalance_ratio:.2f} > 0.85 (need seller stack)"
+            return False, regime_data
+    
+    # LAYER 2: Volatility Regime
+    vol_ratio = calculate_volatility_regime(df_5m)
+    regime_data['vol_regime'] = round(vol_ratio, 2)
+    
+    if vol_ratio < 0.6:
+        regime_data['block_reason'] = f"VOL_REGIME: {vol_ratio:.2f} < 0.6 (dead market)"
+        return False, regime_data
+    
+    if vol_ratio > 2.0:
+        regime_data['block_reason'] = f"VOL_REGIME: {vol_ratio:.2f} > 2.0 (too choppy, reduce size 50%)"
+        regime_data['position_size_reduction'] = 0.5
+    
+    # LAYER 3: Multi-Timeframe Alignment
+    mtf_aligned = check_multitimeframe_alignment(config['instrument_key'], direction)
+    regime_data['mtf_aligned'] = mtf_aligned
+    
+    if not mtf_aligned:
+        regime_data['block_reason'] = "MTF_ALIGNMENT: Timeframes not aligned"
+        return False, regime_data
+    
+    # LAYER 4: Volume Confirmation
+    vol_confirmed = check_volume_confirmation(df_5m)
+    regime_data['volume_confirmed'] = vol_confirmed
+    
+    if not vol_confirmed:
+        regime_data['block_reason'] = "VOLUME: Current vol < 1.3x avg (low conviction)"
+        return False, regime_data
+    
+    # ALL LAYERS PASSED
+    regime_data['passed'] = True
+    return True, regime_data
+
+# =========================================
 # SIGNAL GENERATION - FULLY CORRECTED WITH NEXT 1-MIN ENTRY
 # =========================================
 def generate_signals():
@@ -531,6 +692,17 @@ def generate_signals():
                     continue
                 
                 direction = 'BUY-LONG' if row['buy_signal'] else 'SELL-SHORT'
+                
+                # ⚔️ MILITARY-GRADE REGIME CHECK ⚔️
+                regime_passed, regime_data = military_grade_regime_check(
+                    symbol, config, df, df_1m, direction
+                )
+                
+                if not regime_passed:
+                    print(f"  ❌ BLOCKED {direction} @ {row['datetime'].strftime('%H:%M')} | Reason: {regime_data.get('block_reason', 'Unknown')}")
+                    continue  # Skip this signal
+                
+                print(f"  ✅ REGIME PASSED | OB: {regime_data['order_book_pressure']} | Vol: {regime_data['vol_regime']} | MTF: {regime_data['mtf_aligned']} | VolConf: {regime_data['volume_confirmed']}")
                 
                 # ✅ FINAL FIX: Entry = Close of the NEXT 1-minute candle after signal
                 # 5m candle labeled T covers T to T+4:59. Closes at T+5:00.
@@ -633,7 +805,15 @@ def generate_signals():
                     'signal_age_minutes': round(signal_age_minutes, 1),
                     'entry_candle_time': str(entry_candle_time.strftime('%H:%M:%S')),
                     'validation_status': '✅ Valid' if price_diff_pct <= 1.0 else ('⚠️ Far from market' if price_diff_pct <= 2.0 else '❌ Stale signal'),
-                    'is_executable': price_diff_pct <= 1.5
+                    'is_executable': price_diff_pct <= 1.5,
+                    # ⚔️ MILITARY REGIME DATA ⚔️
+                    'regime_check': {
+                        'order_book_pressure': regime_data.get('order_book_pressure'),
+                        'vol_regime': regime_data.get('vol_regime'),
+                        'mtf_aligned': regime_data.get('mtf_aligned'),
+                        'volume_confirmed': regime_data.get('volume_confirmed'),
+                        'position_size_reduction': regime_data.get('position_size_reduction', 1.0)
+                    }
                 })
                 
                 signal_count += 1
